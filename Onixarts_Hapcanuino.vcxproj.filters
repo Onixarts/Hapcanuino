@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Hapcan">
+      <UniqueIdentifier>{59b68430-52b3-42c5-aa39-ee9a9356ffe2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Onixarts_Hapcanuino.ino" />
@@ -21,5 +24,16 @@
     <ClInclude Include="__vm\.Onixarts_Hapcanuino.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="HapcanDevice.h">
+      <Filter>Hapcan</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceConfig.h">
+      <Filter>Hapcan</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="HapcanDevice.cpp">
+      <Filter>Hapcan</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
