@@ -21,40 +21,38 @@ namespace Onixarts
 		{
 			class HapcanMessage
 			{
-				protected:
-				boolean _isAnswer;
-				int _frameType;
-				byte _node;
-				byte _group;
-					
 				public:
-					byte m_frame[8];
+					unsigned long m_id;
+					byte m_data[8];
 
-					HapcanMessage();// : _isAnswer(false), _frameType(0), _node(0), _group(0)
-					//{} 
+					HapcanMessage();
 					void Parse(unsigned long id, byte* buffer)
 					{
-						memcpy(m_frame, buffer, 8 );
-						_node = (id & 0x0000FF00)>>8;
-						_group = id & 0x000000FF;
-						_frameType = (id & 0xFFFF0000) >> 17;
+						m_id = id;
+						memcpy(m_data, buffer, 8 );
+
+						//_node = (id & 0x0000FF00)>>8;
+						//_group = id & 0x000000FF;
+						//_frameType = (id & 0xFFFF0000) >> 17;
 						//_isAnswer = !(_id & 0x400);
 					}
-					void Set( boolean isAnswer, uint8_t messageType, uint8_t moduleId ) 
+
+					void BuildIdPart( byte frameTypeCategory, byte frameType, bool isAnswer,  byte node, byte group ) 
 					{ 
-						//_id = 0;
-						//if( isAnswer )
-						//	_id &= 0 << 10;
-						//else
-						//	_id |= 1 << 10;
-						//_id |= messageType << 5;
-						//_id |= moduleId;
+						m_id = 0;
+						m_id |= (unsigned long)frameTypeCategory << 21;
+						m_id |= (unsigned long)frameType << 13;
+						if (isAnswer)
+							m_id |= (unsigned long)1 << 16;
+						m_id |= (unsigned long)node << 8;
+						m_id |= group;
 					}
 						
-					boolean IsAnswer() {return _isAnswer;}
-					int GetFrameType() { return _frameType;}
-					byte GetNode() {return _node;}
-					byte GetGroup() { return _group; }
+					byte GetFrameTypeCategory() { return (byte) (m_id >> 21) ;}
+					byte GetFrameType() { return (byte) (((m_id >> 17) << 4 ) | ((m_id >> 16) & 0x1)); }
+					bool IsAnswer() { return (bool) ((m_id >> 16) & 0x1); }
+					byte GetNode() { return (byte) (m_id >> 8); }
+					byte GetGroup() { return (byte) m_id; }
 					void PrintToSerial();
 			};
 
@@ -65,16 +63,25 @@ namespace Onixarts
 				byte m_RxBufferReadIndex;
 				HapcanMessage m_RxBuffer[Config::RxFifoQueueSize];
 				unsigned int m_rxBufferOverflowCount;
+				byte m_group;
+				byte m_node;
+				bool m_receiveAnswerMessages;
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
-				
+				bool ProcessRxBuffer();
+				bool ProcessMessage0x10(HapcanMessage * message);
+				bool ReadRxBuffer(HapcanMessage** message);
+
+				void CanNodeId();
 			public:
 				HapcanDevice();
 
 				void Begin(); 
+				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
 				void OnCanReceived();
+
+				void Update();
 				
-				bool ReadRxBuffer(HapcanMessage** message);
 				unsigned long GetRxBufferOverflowCount();
 
 				static void OnCanReceivedDispatcher();

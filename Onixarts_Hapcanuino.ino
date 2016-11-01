@@ -1,7 +1,7 @@
-//#include <mcp_can.h>
 #include <SPI.h>
 #include "Arduino.h"
 #include "HapcanDevice.h"
+
 
 using namespace Onixarts::HomeAutomationCore;
 
@@ -13,15 +13,10 @@ void setup()
 	Serial.println("Hapcanuino device starting...");
 
 	hapcanDevice.Begin();
+	hapcanDevice.ReceiveAnswerMessages(true);
 }
 
 void loop()
 {
-	Hapcan::HapcanMessage* message = NULL;
-	if (hapcanDevice.ReadRxBuffer(&message))
-	{
-		message->PrintToSerial();
-	}
-
-	//_delay_ms(50);
+	hapcanDevice.Update();
 }
