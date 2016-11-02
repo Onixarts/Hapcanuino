@@ -4,17 +4,15 @@
 // ==============================================================================================================
 #define     HARD1   0x4F       //hardware type (0x4F41 - OA)
 #define     HARD2   0x41       //hardware type
-#define     HVERS   .01        //hardware version (OA 1)
+#define     HVERS   1			//hardware version (OA 1)
 
-#define     BVER    .01        //bootloader software major version
-#define     BREV    .00        //bootloader software minor version
 // ==============================================================================================================
 // === NODE SERIAL NUMBER =======================================================================================
 // ==============================================================================================================
-#define     ID0     0x00            //node serial number MSB
-#define     ID1     0x00            //node serial number
-#define     ID2     0x00            //node serial number
-#define     ID3     0x01            //node serial number LSB
+#define     ID0     0x01            //node serial number MSB
+#define     ID1     0x02            //node serial number
+#define     ID2     0x03            //node serial number
+#define     ID3     0x04            //node serial number LSB
 // ==============================================================================================================
 // === HARDWARE ID ==============================================================================================
 // ==============================================================================================================
@@ -32,12 +30,41 @@ namespace Onixarts
 
 				const byte InitialGroup = 3;					// Initial group identifier
 				const byte InitialNode = 3;						// Initial node identifier
+				
+				namespace Hardware
+				{
+					const byte HardwareType1 = 0x4f;			//hardware type (0x3000 = UNIV 3, 0x4F41 = OA Hapcanuino)
+					const byte HardwareType2 = 0x41;
+					const byte HardwareVersion = 1;				// 3 for Hapcan's UNIV 3, 1 = Arduino Uno 
+				}
+
+				namespace Node
+				{
+					const byte SerialNumber0 = 0x01;			// ID0 serial number MSB
+					const byte SerialNumber1 = 0x02;
+					const byte SerialNumber2 = 0x03;
+					const byte SerialNumber3 = 0x04;
+				}
+
+				namespace Firmware
+				{
+					const byte ApplicationType = 0x20;			// application (hardware) type (such as button, relay, dimmer) 1-10 reserved for Hapcan modules, 102 - ethernet
+					const byte ApplicationVersion = 0;			// application (hardware) version
+					const byte FirmwareVersion = 0;				// firmware version
+					const int FirmwareRevision = 1;				// firmware revision
+				}
 
 				namespace MCP
 				{
 					const byte InterruptPin = 2;				// CAN module interrupt is connected to this pin (see https://www.arduino.cc/en/Reference/AttachInterrupt)
 					const byte CSPin = 10;						// SPI CS pin
 					const byte OscillatorFrequency = MCP_8MHz;	// MCP oscillator frequency on MCP CAN module (or MCP_16MHz)
+				}
+
+				namespace BootLoader
+				{
+					const byte BootloaderVersion = 1;			// BVER1
+					const byte BootloaderRevision = 0;			// BREV2
 				}
 			}
 

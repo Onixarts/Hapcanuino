@@ -30,11 +30,6 @@ namespace Onixarts
 					{
 						m_id = id;
 						memcpy(m_data, buffer, 8 );
-
-						//_node = (id & 0x0000FF00)>>8;
-						//_group = id & 0x000000FF;
-						//_frameType = (id & 0xFFFF0000) >> 17;
-						//_isAnswer = !(_id & 0x400);
 					}
 
 					void BuildIdPart( byte frameTypeCategory, byte frameType, bool isAnswer,  byte node, byte group ) 
@@ -66,13 +61,21 @@ namespace Onixarts
 				byte m_group;
 				byte m_node;
 				bool m_receiveAnswerMessages;
+				byte m_description[16] = {'H','a','p','c','a','n','u','i','n','o',' ','A','L','P','H','A'};	// TODO: zapisaæ w eepromie
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
 				bool ProcessMessage0x10(HapcanMessage * message);
 				bool ReadRxBuffer(HapcanMessage** message);
+				bool MatchGroup(HapcanMessage* message);
+				bool MatchNode(HapcanMessage* message);
 
-				void CanNodeId();
+
+				void RebootAction();
+				void CanNodeIdAction(byte frameType);
+				void CanFirmwareIdAction(byte frameType);
+				void SupplyVoltageAction(byte frameType);
+				void NodeDescriptionAction(byte frameType);
 			public:
 				HapcanDevice();
 
@@ -83,6 +86,8 @@ namespace Onixarts
 				void Update();
 				
 				unsigned long GetRxBufferOverflowCount();
+
+				void Send(HapcanMessage & message);
 
 				static void OnCanReceivedDispatcher();
 			};

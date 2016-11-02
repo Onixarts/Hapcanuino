@@ -1,5 +1,6 @@
 #include "Arduino.h"
 #include "HapcanDevice.h"
+#include <avr/wdt.h>
 
 // Send debug info to Serial port. Comment line below to disable Serial notifications and reduce code and SRAM usage
 #define OA_DEBUG 1	
@@ -57,6 +58,7 @@ void HapcanMessage::PrintToSerial()
 }
 
 HapcanDevice* pHapcanDevice = NULL;
+void(*resetFunc) (void) = 0;
 
 HapcanDevice::HapcanDevice()
 	:CAN(Config::MCP::CSPin)
@@ -68,6 +70,7 @@ HapcanDevice::HapcanDevice()
 	, m_receiveAnswerMessages(false)
 {
 	pHapcanDevice = this;
+	//memset(m_description, 32, 16);	// init description with spaces
 
 }
 
@@ -82,6 +85,8 @@ void HapcanDevice::Begin()
 
 	//ReadEEpromConfig()
 	// odczyt node number i group z eepromu
+	// description
+
 	// firmware started
 	//FIRMFLAG |= 1;      // set flag "firmware started and ready for interrupts"
 }
@@ -228,15 +233,81 @@ bool HapcanDevice::ProcessRxBuffer()
 	return false;
 }
 
-// Process massage type 10
+// Checks if message is for nodes in current group or for all groups
+bool HapcanDevice::MatchGroup(HapcanMessage* message)
+{
+	if (message->m_data[2] == 0 && (message->m_data[3] == m_group || message->m_data[3] == 0x00))
+		return true;
+	return false;
+}
+
+// Checks if message is for this node
+bool HapcanDevice::MatchNode(HapcanMessage* message)
+{
+	if (message->m_data[2] == m_node && message->m_data[3] == m_group)
+		return true;
+	return false;
+}
+
+// Process massage type 10X
 bool HapcanDevice::ProcessMessage0x10(HapcanMessage* message)
 {
-	
-	switch(message->GetFrameType())
+	byte frameType = message->GetFrameType();
+	switch(frameType)
 	{
-	case Hapcan::Message::System0x10::HardwareTypeRequestToGroup: 
-		if( message->m_data[2] == 0 && (message->m_data[3] == m_group || message->m_data[3] == 0x00))
-			CanNodeId();
+
+	//const byte EnterProgrammingMode = 0x00;
+	case Message::System0x10::RebootRequestToGroup:
+		if (MatchGroup(message))
+			RebootAction();
+		break;
+	case Message::System0x10::RebootRequestToNode:
+		if (MatchNode(message))
+			RebootAction();
+		break;
+	case Message::System0x10::HardwareTypeRequestToGroup: 
+		if(MatchGroup(message))
+			CanNodeIdAction(frameType);
+		break;
+	case Message::System0x10::HardwareTypeRequestToNode:
+		if (MatchNode(message))
+			CanNodeIdAction(frameType);
+		break;
+	case Message::System0x10::FirmwareTypeRequestToGroup:
+		if (MatchGroup(message))
+			CanFirmwareIdAction(frameType);
+		break;
+	case Message::System0x10::FirmwareTypeRequestToNode:
+		if (MatchNode(message))
+			CanFirmwareIdAction(frameType);
+		break;
+
+		//const byte SetDefaultNodeAndGroupRequestToNode = 0x70;
+
+		//// Handled by functional firmware
+		//const byte StatusRequestToGroup = 0x80;
+		//const byte StatusRequestToNode = 0x90;
+		//const byte ControlMessage = 0xA0;
+
+	case Message::System0x10::SupplyVoltageRequestToGroup:
+		if (MatchGroup(message))
+			SupplyVoltageAction(frameType);
+		break;
+	case Message::System0x10::SupplyVoltageRequestToNode:
+		if (MatchNode(message))
+			SupplyVoltageAction(frameType);
+		break;
+
+	case Message::System0x10::DescriptionRequestToGroup:
+		if (MatchGroup(message))
+			NodeDescriptionAction(frameType);
+		break;
+	case Message::System0x10::DescriptionRequestToNode:
+		if (MatchNode(message))
+			NodeDescriptionAction(frameType);
+		break;
+
+		//const byte DeviceIDRequestToGroup = 0xF0;
 		break;
 	default: 
 		return false;
@@ -252,16 +323,89 @@ unsigned long HapcanDevice::GetRxBufferOverflowCount()
 	return m_rxBufferOverflowCount;
 }
 
+// Send HapcanMessage to the CAN BUS
+void HapcanDevice::Send(HapcanMessage& message)
+{
+	message.PrintToSerial();
+	CAN.sendMsgBuf(message.m_id, 1, 8, message.m_data);
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+
+// Reboots the device
+void HapcanDevice::RebootAction()
+{
+	OA_LOG("> Rebooting...");
+	wdt_enable(WDTO_15MS);
+	_delay_ms(20);
+}
+
 // Send Can Node ID
-void HapcanDevice::CanNodeId()
+void HapcanDevice::CanNodeIdAction(byte frameType)
 {
 	HapcanMessage message;
-	message.BuildIdPart(Hapcan::Message::SystemMessage0x10Flag, Hapcan::Message::System0x10::HardwareTypeRequestToGroup, true, m_node, m_group);
-	for (byte i = 0; i < 8; i++)
-		message.m_data[i] = pgm_read_byte( (HARDID + i) );
+	message.BuildIdPart(Hapcan::Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	message.m_data[0] = Config::Hardware::HardwareType1;
+	message.m_data[1] = Config::Hardware::HardwareType2;
+	message.m_data[2] = Config::Hardware::HardwareVersion;
+	
+	message.m_data[4] = Config::Node::SerialNumber0;
+	message.m_data[5] = Config::Node::SerialNumber1;
+	message.m_data[6] = Config::Node::SerialNumber2;
+	message.m_data[7] = Config::Node::SerialNumber3;
 	
 	OA_LOG("> CanNodeId");
-	message.PrintToSerial();
+	Send(message);
+}
 
-	CAN.sendMsgBuf(message.m_id, 1, 8, message.m_data);
+// Send Can Firmware ID or error frame if no firmware
+void HapcanDevice::CanFirmwareIdAction(byte frameType)
+{
+	//TODO: test if firmware is OK, return error frame then
+	HapcanMessage message;
+	message.BuildIdPart(Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	message.m_data[0] = Config::Hardware::HardwareType1;
+	message.m_data[1] = Config::Hardware::HardwareType2;
+	message.m_data[2] = Config::Hardware::HardwareVersion;
+	message.m_data[3] = Config::Firmware::ApplicationType;
+	message.m_data[4] = Config::Firmware::ApplicationVersion;
+	message.m_data[5] = Config::Firmware::FirmwareVersion;
+	message.m_data[6] = Config::BootLoader::BootloaderVersion;
+	message.m_data[7] = Config::BootLoader::BootloaderRevision;
+	
+	OA_LOG("> CanFirmwareId");
+	Send(message);
+}
+
+// Send supply voltage information (currently not supported, returns 0V)
+void HapcanDevice::SupplyVoltageAction(byte frameType)
+{
+	HapcanMessage message;
+	message.BuildIdPart(Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	message.m_data[0] = 0;
+	message.m_data[1] = 0;
+	message.m_data[2] = 0;
+	message.m_data[3] = 0;
+
+	OA_LOG("> SupplyVoltage");
+	Send(message);
+}
+
+void HapcanDevice::NodeDescriptionAction(byte frameType)
+{
+	HapcanMessage message;
+	message.BuildIdPart(Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	for(byte i = 0; i < 8; i++)
+		message.m_data[i] = m_description[i];
+
+	OA_LOG("> Description 1");
+	Send(message);
+
+	for (byte i = 0; i < 8; i++)
+		message.m_data[i] = m_description[8+i];
+
+	OA_LOG("> Description 2");
+	Send(message);
 }
