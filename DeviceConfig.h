@@ -1,23 +1,4 @@
 #pragma once
-// ==============================================================================================================
-// === LOCAL DEFINITION =========================================================================================
-// ==============================================================================================================
-#define     HARD1   0x4F       //hardware type (0x4F41 - OA)
-#define     HARD2   0x41       //hardware type
-#define     HVERS   1			//hardware version (OA 1)
-
-// ==============================================================================================================
-// === NODE SERIAL NUMBER =======================================================================================
-// ==============================================================================================================
-#define     ID0     0x01            //node serial number MSB
-#define     ID1     0x02            //node serial number
-#define     ID2     0x03            //node serial number
-#define     ID3     0x04            //node serial number LSB
-// ==============================================================================================================
-// === HARDWARE ID ==============================================================================================
-// ==============================================================================================================
-const byte HARDID[] PROGMEM = { HARD1, HARD2, HVERS, 0xFF, ID0, ID1, ID2, ID3 };
-
 namespace Onixarts
 {
 	namespace HomeAutomationCore
@@ -36,6 +17,9 @@ namespace Onixarts
 					const byte HardwareType1 = 0x4f;			//hardware type (0x3000 = UNIV 3, 0x4F41 = OA Hapcanuino)
 					const byte HardwareType2 = 0x41;
 					const byte HardwareVersion = 1;				// 3 for Hapcan's UNIV 3, 1 = Arduino Uno 
+
+					const byte DeviceId1 = 0x12;				// unique device identifier 1, change it
+					const byte DeviceId2 = 0x34;				// unique device identifier 2, change it
 				}
 
 				namespace Node
@@ -71,65 +55,60 @@ namespace Onixarts
 			namespace Message
 			{
 				//const byte SystemMessage0x00Flag = 0x00;
-				const byte SystemMessage0x10Flag = 0x10;
-				const byte SystemMessage0x11Flag = 0x11;
-				const byte NormalMessage0x30Flag = 0x30;
 
-				namespace System0x0F
+				//const byte SystemMessage0x10Flag = 0x10;
+				//const byte SystemMessage0x11Flag = 0x11;
+				const byte NormalMessageCategory = 0x30;
+
+				namespace System
 				{
 					// Handled by bootloader in programming mode
-					const byte ExitAllFromBootloaderProgrammingMode = 0x10;
-					const byte ExitOneNodeFromBootloaderProgrammingMode = 0x20;
-					const byte AddressFrame = 0x30;
-					const byte DataFrame = 0x40;
-				}
+					const unsigned int ExitAllFromBootloaderProgrammingMode = 0x010;
+					const unsigned int ExitOneNodeFromBootloaderProgrammingMode = 0x020;
+					const unsigned int AddressFrame = 0x030;
+					const unsigned int DataFrame = 0x040;
 
-				namespace System0x10
-				{
 					// Handled by bootloader
-					const byte EnterProgrammingMode = 0x00;
-					const byte RebootRequestToGroup = 0x10;
-					const byte RebootRequestToNode = 0x20;
-					const byte HardwareTypeRequestToGroup = 0x30;
-					const byte HardwareTypeRequestToNode = 0x40;
-					const byte FirmwareTypeRequestToGroup = 0x50;
-					const byte FirmwareTypeRequestToNode = 0x60;
-					const byte SetDefaultNodeAndGroupRequestToNode = 0x70;
+					const unsigned int EnterProgrammingMode = 0x100;
+					const unsigned int RebootRequestToGroup = 0x101;
+					const unsigned int RebootRequestToNode = 0x102;
+					const unsigned int HardwareTypeRequestToGroup = 0x103;
+					const unsigned int HardwareTypeRequestToNode = 0x104;
+					const unsigned int FirmwareTypeRequestToGroup = 0x105;
+					const unsigned int FirmwareTypeRequestToNode = 0x106;
+					const unsigned int SetDefaultNodeAndGroupRequestToNode = 0x107;
 
 					// Handled by functional firmware
-					const byte StatusRequestToGroup = 0x80;
-					const byte StatusRequestToNode = 0x90;
-					const byte ControlMessage = 0xA0;
+					const unsigned int StatusRequestToGroup = 0x108;
+					const unsigned int StatusRequestToNode = 0x109;
+					const unsigned int ControlMessage = 0x10A;
 
 					//Handled by bootloader
-					const byte SupplyVoltageRequestToGroup = 0xB0;
-					const byte SupplyVoltageRequestToNode = 0xC0;
-					const byte DescriptionRequestToGroup = 0xD0;
-					const byte DescriptionRequestToNode = 0xE0;
-					const byte DeviceIDRequestToGroup = 0xF0;
+					const unsigned int SupplyVoltageRequestToGroup = 0x10B;
+					const unsigned int SupplyVoltageRequestToNode = 0x10C;
+					const unsigned int DescriptionRequestToGroup = 0x10D;
+					const unsigned int DescriptionRequestToNode = 0x10E;
+					const unsigned int DeviceIDRequestToGroup = 0x10F;
+
+					// Handled by functional firmware
+					const unsigned int DeviceIDRequestToNode = 0x111;
+					const unsigned int UptimeRequestToGroup = 0x112;
+					const unsigned int UptimeRequestToNode = 0x113;
+					const unsigned int HealthCheckRequestToGroup = 0x114;
+					const unsigned int HealthCheckRequestToNode = 0x115;
 				}
 
-				namespace System0x11
+				namespace Normal
 				{
 					// Handled by functional firmware
-					const byte DeviceIDRequestToNode = 0x10;
-					const byte UptimeRequestToGroup = 0x20;
-					const byte UptimeRequestToNode = 0x30;
-					const byte HealthCheckRequestToGroup = 0x40;
-					const byte HealthCheckRequestToNode = 0x50;
-				}
-
-				namespace Normal0x30
-				{
-					// Handled by functional firmware
-					const byte ButtonNodeMessage = 0x10;
-					const byte RelayMessage = 0x20;
-					const byte InfraredReceiverMessage = 0x30;
-					const byte TemperatureSensorMessage = 0x40;
-					const byte InfraredTransmitterMessage = 0x50;
-					const byte DimmerMessage = 0x60;
-					const byte BlindControllerMessage = 0x70;
-					const byte LedControllerMessage = 0x80;
+					const unsigned int ButtonNodeMessage = 0x301;
+					const unsigned int RelayMessage = 0x302;
+					const unsigned int InfraredReceiverMessage = 0x303;
+					const unsigned int TemperatureSensorMessage = 0x304;
+					const unsigned int InfraredTransmitterMessage = 0x305;
+					const unsigned int DimmerMessage = 0x306;
+					const unsigned int BlindControllerMessage = 0x307;
+					const unsigned int LedControllerMessage = 0x308;
 				}
 			}
 		}

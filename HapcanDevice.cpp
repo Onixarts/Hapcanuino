@@ -26,16 +26,17 @@ void HapcanMessage::PrintToSerial()
 #ifdef OA_DEBUG
 	//Serial.print("Raw Frame type: ");
 	//Serial.println(m_id, HEX);
-	Serial.print("Frame: ");
-	byte temp = GetFrameTypeCategory();
-	if( temp < 0x10)
+	Serial.print("Frame: 0x");
+	//byte temp = GetFrameTypeCategory();
+	//if( temp < 0x10)
+	//	Serial.print("0");
+	//Serial.print(temp, HEX);
+	//Serial.print(" ");
+	unsigned int temp1 = GetFrameType();
+	if (temp1 < 0x100)
 		Serial.print("0");
-	Serial.print(temp, HEX);
-	Serial.print(" ");
-	temp = GetFrameType();
-	if (temp < 0x10)
-		Serial.print("0");
-	Serial.print(temp, HEX);
+	Serial.print(temp1, HEX);
+	Serial.print(IsAnswer() ? " A" : "  ");
 
 	Serial.print("\tNode (");
 	Serial.print(GetNode());
@@ -58,7 +59,6 @@ void HapcanMessage::PrintToSerial()
 }
 
 HapcanDevice* pHapcanDevice = NULL;
-void(*resetFunc) (void) = 0;
 
 HapcanDevice::HapcanDevice()
 	:CAN(Config::MCP::CSPin)
@@ -68,6 +68,7 @@ HapcanDevice::HapcanDevice()
 	, m_group(Hapcan::Config::InitialGroup)
 	, m_node(Hapcan::Config::InitialNode)
 	, m_receiveAnswerMessages(false)
+	, m_isInProgrammingMode(false)
 {
 	pHapcanDevice = this;
 	//memset(m_description, 32, 16);	// init description with spaces
@@ -197,15 +198,16 @@ bool HapcanDevice::ProcessRxBuffer()
 	{
 		message->PrintToSerial();
 
-		int frameTypeCategory = message->GetFrameTypeCategory();
-		
+		byte frameTypeCategory = message->GetFrameTypeCategory();
+		//Serial.println(frame)
+
 		// messages less than 0x100 are for every node
-		if (frameTypeCategory < Hapcan::Message::SystemMessage0x10Flag)
-		{
-			// TODO: programming messages
-			OA_LOG("wiadomosc programuj¹ca < 0x100");
-			return true;
-		}
+		//if (frameTypeCategory < Hapcan::Message::SystemMessage0x10Flag)
+		//{
+		//	// TODO: programming messages
+		//	OA_LOG("wiadomosc programuj¹ca < 0x100");
+		//	return true;
+		//}
 
 		//if (message->m_data[2] == 0x0 && message->m_data[3] == m_group)
 		//	return false;
@@ -216,18 +218,22 @@ bool HapcanDevice::ProcessRxBuffer()
 
 		// TODO czy to jest do tego noda w takim razie?
 
+		if (frameTypeCategory < Hapcan::Message::NormalMessageCategory)
+			ProcessSystemMessage(message);
+		//else
+//			ProcessNormalMessage(message);
 
-		switch (frameTypeCategory)
-		{
-		case Hapcan::Message::SystemMessage0x10Flag:
-			ProcessMessage0x10(message);
-			break;
-		case Hapcan::Message::SystemMessage0x11Flag:
-			//Serial.println("wiadomosc systemowa 11");
-		case Hapcan::Message::NormalMessage0x30Flag:
-			//Serial.println("wiadomosc normalna od urz¹dzenia");
-			break;
-		}
+		//switch (frameTypeCategory)
+		//{
+//		case Hapcan::Message::SystemMessage0x10Flag:
+			//ProcessSystemMessage(message);
+			//break;
+		//case Hapcan::Message::SystemMessage0x11Flag:
+		//	//Serial.println("wiadomosc systemowa 11");
+		//case Hapcan::Message::NormalMessage0x30Flag:
+		//	//Serial.println("wiadomosc normalna od urz¹dzenia");
+		//	break;
+		//}
 		return true;
 	}
 	return false;
@@ -249,66 +255,97 @@ bool HapcanDevice::MatchNode(HapcanMessage* message)
 	return false;
 }
 
-// Process massage type 10X
-bool HapcanDevice::ProcessMessage0x10(HapcanMessage* message)
+// Process system massage type
+bool HapcanDevice::ProcessSystemMessage(HapcanMessage* message)
 {
-	byte frameType = message->GetFrameType();
+	unsigned int frameType = message->GetFrameType();
 	switch(frameType)
 	{
+	case Message::System::ExitAllFromBootloaderProgrammingMode:
+		ProgrammingModeAction(frameType);
+		break;
+	case Message::System::ExitOneNodeFromBootloaderProgrammingMode:
+		if (MatchNode(message))
+			ProgrammingModeAction(frameType);
+	case Message::System::AddressFrame:
+		//TODO: address frame
+		break;
+	case Message::System::DataFrame:
+		//TODO: data frame
+		break;
 
-	//const byte EnterProgrammingMode = 0x00;
-	case Message::System0x10::RebootRequestToGroup:
+	case Message::System::EnterProgrammingMode:
+		if (MatchNode(message))
+			ProgrammingModeAction(frameType);
+		break;
+	case Message::System::RebootRequestToGroup:
 		if (MatchGroup(message))
 			RebootAction();
 		break;
-	case Message::System0x10::RebootRequestToNode:
+	case Message::System::RebootRequestToNode:
 		if (MatchNode(message))
 			RebootAction();
 		break;
-	case Message::System0x10::HardwareTypeRequestToGroup: 
+	case Message::System::HardwareTypeRequestToGroup: 
 		if(MatchGroup(message))
 			CanNodeIdAction(frameType);
 		break;
-	case Message::System0x10::HardwareTypeRequestToNode:
+	case Message::System::HardwareTypeRequestToNode:
 		if (MatchNode(message))
 			CanNodeIdAction(frameType);
 		break;
-	case Message::System0x10::FirmwareTypeRequestToGroup:
+	case Message::System::FirmwareTypeRequestToGroup:
 		if (MatchGroup(message))
 			CanFirmwareIdAction(frameType);
 		break;
-	case Message::System0x10::FirmwareTypeRequestToNode:
+	case Message::System::FirmwareTypeRequestToNode:
 		if (MatchNode(message))
 			CanFirmwareIdAction(frameType);
 		break;
+	case Message::System::SetDefaultNodeAndGroupRequestToNode:
+		if (MatchNode(message))
+			SetDefaultNodeAndGroupAction(frameType);
+		break;
+	case Message::System::StatusRequestToGroup:
+		if (MatchGroup(message))
+			StatusRequestAction(message);
+		break;
+	case Message::System::StatusRequestToNode:
+		if (MatchNode(message))
+			StatusRequestAction(message);
+		break;
+	case Message::System::ControlMessage:
+		if (MatchNode(message))
+			ControlAction(message);
+		break;
 
-		//const byte SetDefaultNodeAndGroupRequestToNode = 0x70;
-
-		//// Handled by functional firmware
-		//const byte StatusRequestToGroup = 0x80;
-		//const byte StatusRequestToNode = 0x90;
-		//const byte ControlMessage = 0xA0;
-
-	case Message::System0x10::SupplyVoltageRequestToGroup:
+	case Message::System::SupplyVoltageRequestToGroup:
 		if (MatchGroup(message))
 			SupplyVoltageAction(frameType);
 		break;
-	case Message::System0x10::SupplyVoltageRequestToNode:
+	case Message::System::SupplyVoltageRequestToNode:
 		if (MatchNode(message))
 			SupplyVoltageAction(frameType);
 		break;
 
-	case Message::System0x10::DescriptionRequestToGroup:
+	case Message::System::DescriptionRequestToGroup:
 		if (MatchGroup(message))
 			NodeDescriptionAction(frameType);
 		break;
-	case Message::System0x10::DescriptionRequestToNode:
+	case Message::System::DescriptionRequestToNode:
 		if (MatchNode(message))
 			NodeDescriptionAction(frameType);
 		break;
-
-		//const byte DeviceIDRequestToGroup = 0xF0;
+	case Message::System::DeviceIDRequestToGroup:
+		if (MatchGroup(message))
+			DeviceIDAction(frameType);
 		break;
+
+		//const unsigned int DeviceIDRequestToNode = 0x111;
+		//const unsigned int UptimeRequestToGroup = 0x112;
+		//const unsigned int UptimeRequestToNode = 0x113;
+		//const unsigned int HealthCheckRequestToGroup = 0x114;
+		//const unsigned int HealthCheckRequestToNode = 0x115;
 	default: 
 		return false;
 	}
@@ -331,10 +368,27 @@ void HapcanDevice::Send(HapcanMessage& message)
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------------------------
+//-- BOOTLOADER ACTIONS ----------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------
 
-// Reboots the device
+// Handle programming mode 
+void HapcanDevice::ProgrammingModeAction(unsigned int frameType)
+{
+	switch (frameType)
+	{
+	case Message::System::EnterProgrammingMode:
+		OA_LOG("> Entering programming mode");
+		m_isInProgrammingMode = true;
+		break;
+	case Message::System::ExitAllFromBootloaderProgrammingMode:
+	case Message::System::ExitOneNodeFromBootloaderProgrammingMode:
+		OA_LOG("> Exiting programming mode");
+		m_isInProgrammingMode = false;
+		break;
+	}
+}
+
+// Reboots the device. No Message is sent to CAN BUS.
 void HapcanDevice::RebootAction()
 {
 	OA_LOG("> Rebooting...");
@@ -343,10 +397,10 @@ void HapcanDevice::RebootAction()
 }
 
 // Send Can Node ID
-void HapcanDevice::CanNodeIdAction(byte frameType)
+void HapcanDevice::CanNodeIdAction(unsigned int frameType)
 {
 	HapcanMessage message;
-	message.BuildIdPart(Hapcan::Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	message.BuildIdPart(frameType, true, m_node, m_group);
 	message.m_data[0] = Config::Hardware::HardwareType1;
 	message.m_data[1] = Config::Hardware::HardwareType2;
 	message.m_data[2] = Config::Hardware::HardwareVersion;
@@ -361,11 +415,11 @@ void HapcanDevice::CanNodeIdAction(byte frameType)
 }
 
 // Send Can Firmware ID or error frame if no firmware
-void HapcanDevice::CanFirmwareIdAction(byte frameType)
+void HapcanDevice::CanFirmwareIdAction(unsigned int frameType)
 {
 	//TODO: test if firmware is OK, return error frame then
 	HapcanMessage message;
-	message.BuildIdPart(Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	message.BuildIdPart(frameType, true, m_node, m_group);
 	message.m_data[0] = Config::Hardware::HardwareType1;
 	message.m_data[1] = Config::Hardware::HardwareType2;
 	message.m_data[2] = Config::Hardware::HardwareVersion;
@@ -380,10 +434,10 @@ void HapcanDevice::CanFirmwareIdAction(byte frameType)
 }
 
 // Send supply voltage information (currently not supported, returns 0V)
-void HapcanDevice::SupplyVoltageAction(byte frameType)
+void HapcanDevice::SupplyVoltageAction(unsigned int frameType)
 {
 	HapcanMessage message;
-	message.BuildIdPart(Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	message.BuildIdPart(frameType, true, m_node, m_group);
 	message.m_data[0] = 0;
 	message.m_data[1] = 0;
 	message.m_data[2] = 0;
@@ -393,10 +447,10 @@ void HapcanDevice::SupplyVoltageAction(byte frameType)
 	Send(message);
 }
 
-void HapcanDevice::NodeDescriptionAction(byte frameType)
+void HapcanDevice::NodeDescriptionAction(unsigned int frameType)
 {
 	HapcanMessage message;
-	message.BuildIdPart(Message::SystemMessage0x10Flag, frameType, true, m_node, m_group);
+	message.BuildIdPart(frameType, true, m_node, m_group);
 	for(byte i = 0; i < 8; i++)
 		message.m_data[i] = m_description[i];
 
@@ -407,5 +461,49 @@ void HapcanDevice::NodeDescriptionAction(byte frameType)
 		message.m_data[i] = m_description[8+i];
 
 	OA_LOG("> Description 2");
+	Send(message);
+}
+
+// Reset node and group to default values
+void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
+{
+	// TODO: reset node and group
+
+	HapcanMessage message;
+	message.BuildIdPart(frameType, true, m_node, m_group);
+
+	OA_LOG("> SetDefaultNodeAndGroup");
+	Send(message);
+}
+
+// Default implementation for status Request. Override this method in derived class 
+void HapcanDevice::StatusRequestAction(HapcanMessage* message)
+{
+	HapcanMessage messageOut;
+	messageOut.BuildIdPart(message->GetFrameType(), true, m_node, m_group);
+
+	OA_LOG("> StatusRequest");
+	Send(messageOut);
+}
+
+// Default implementation for control module. Override this method in derived class 
+void HapcanDevice::ControlAction(HapcanMessage* message)
+{
+	HapcanMessage messageOut;
+	messageOut.BuildIdPart(message->GetFrameType(), true, m_node, m_group);
+
+	OA_LOG("> Control");
+	Send(messageOut);
+}
+
+// Send device (chip) ID 
+void HapcanDevice::DeviceIDAction(unsigned int frameType)
+{
+	HapcanMessage message;
+	message.BuildIdPart(frameType, true, m_node, m_group);
+	message.m_data[0] = Config::Hardware::DeviceId1;
+	message.m_data[1] = Config::Hardware::DeviceId2;
+
+	OA_LOG("> DeviceID");
 	Send(message);
 }

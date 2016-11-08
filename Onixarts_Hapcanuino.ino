@@ -1,4 +1,4 @@
-#include <SPI.h>
+//#include <SPI.h>
 #include "Arduino.h"
 #include "HapcanDevice.h"
 
