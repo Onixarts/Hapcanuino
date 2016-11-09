@@ -47,6 +47,7 @@ namespace Onixarts
 					//byte GetFrameType() { return (byte) (((m_id >> 17) << 4 ) | ((m_id >> 16) & 0x1)); }
 					unsigned int GetFrameType() { return (unsigned int)(((m_id >> 17) )); }
 					bool IsAnswer() { return (bool) ((m_id >> 16) & 0x1); }
+					void SetAnswer() { m_id |= (unsigned long)1 << 16; }
 					byte GetNode() { return (byte) (m_id >> 8); }
 					byte GetGroup() { return (byte) m_id; }
 					void PrintToSerial();
@@ -63,7 +64,10 @@ namespace Onixarts
 				byte m_node;
 				bool m_receiveAnswerMessages;
 				bool m_isInProgrammingMode;
-				byte m_description[16] = {'H','a','p','c','a','n','u','i','n','o',' ','A','L','P','H','A'};	// TODO: zapisaæ w eepromie
+				bool m_isInitialized;
+				unsigned int m_memoryAddress;
+				byte m_memoryCommand;
+				byte m_description[16];
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
@@ -71,8 +75,14 @@ namespace Onixarts
 				bool ReadRxBuffer(HapcanMessage** message);
 				bool MatchGroup(HapcanMessage* message);
 				bool MatchNode(HapcanMessage* message);
+				void ProcessProgrammingMessage(HapcanMessage* message);
+				void ReadEEPROMConfig();
 
 
+				void AddressFrameAction(HapcanMessage* inputMessage);
+				void DataFrameAction(HapcanMessage* inputMessage);
+				void ErrorFrameAction(HapcanMessage* inputMessage);
+				void EnterProgrammingModeAction(unsigned int frameType);
 				void ProgrammingModeAction(unsigned int frameType);
 				void RebootAction();
 				void CanNodeIdAction(unsigned int frameType);
@@ -81,6 +91,8 @@ namespace Onixarts
 				void NodeDescriptionAction(unsigned int frameType);
 				void SetDefaultNodeAndGroupAction(unsigned int frameType);
 				void DeviceIDAction(unsigned int frameType);
+				
+				//void UptimeAction(unsigned int frameType);
 
 				virtual void StatusRequestAction(HapcanMessage* message);
 				virtual void ControlAction(HapcanMessage* message);

@@ -1,4 +1,14 @@
 #pragma once
+
+// Send debug info to Serial port. Comment line below to disable Serial notifications and reduce FLASH and SRAM usage
+#define OA_DEBUG 1	
+
+#ifdef OA_DEBUG
+#define OA_LOG(text) Serial.println(text)
+#else
+#define OA_LOG(text) //empty
+#endif	
+
 namespace Onixarts
 {
 	namespace HomeAutomationCore
@@ -8,9 +18,6 @@ namespace Onixarts
 			namespace Config
 			{
 				const byte RxFifoQueueSize = 10;				// max 255
-
-				const byte InitialGroup = 3;					// Initial group identifier
-				const byte InitialNode = 3;						// Initial node identifier
 				
 				namespace Hardware
 				{
@@ -26,8 +33,8 @@ namespace Onixarts
 				{
 					const byte SerialNumber0 = 0x01;			// ID0 serial number MSB
 					const byte SerialNumber1 = 0x02;
-					const byte SerialNumber2 = 0x03;
-					const byte SerialNumber3 = 0x04;
+					const byte SerialNumber2 = 0x20;			// this is also a default node
+					const byte SerialNumber3 = 0x09;			// this is also a default group
 				}
 
 				namespace Firmware
@@ -52,6 +59,18 @@ namespace Onixarts
 				}
 			}
 
+			namespace Programming
+			{
+				namespace Command
+				{
+					const byte Undefined = 0x00;
+					const byte Read = 0x01;
+					const byte Write = 0x02;
+					const byte Erase = 0x03;
+				}
+				
+			}
+
 			namespace Message
 			{
 				//const byte SystemMessage0x00Flag = 0x00;
@@ -67,6 +86,8 @@ namespace Onixarts
 					const unsigned int ExitOneNodeFromBootloaderProgrammingMode = 0x020;
 					const unsigned int AddressFrame = 0x030;
 					const unsigned int DataFrame = 0x040;
+
+					const unsigned int ErrorFrame = 0x0F0;
 
 					// Handled by bootloader
 					const unsigned int EnterProgrammingMode = 0x100;

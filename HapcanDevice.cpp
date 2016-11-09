@@ -1,16 +1,7 @@
 #include "Arduino.h"
 #include "HapcanDevice.h"
 #include <avr/wdt.h>
-
-// Send debug info to Serial port. Comment line below to disable Serial notifications and reduce code and SRAM usage
-#define OA_DEBUG 1	
-
-#ifdef OA_DEBUG
-	#define OA_LOG(text) Serial.println(text)
-#else
-	#define OA_LOG(text) //empty
-#endif	
-
+#include <EEPROM.h>
 
 using namespace Onixarts::HomeAutomationCore::Hapcan;
 
@@ -27,11 +18,7 @@ void HapcanMessage::PrintToSerial()
 	//Serial.print("Raw Frame type: ");
 	//Serial.println(m_id, HEX);
 	Serial.print("Frame: 0x");
-	//byte temp = GetFrameTypeCategory();
-	//if( temp < 0x10)
-	//	Serial.print("0");
-	//Serial.print(temp, HEX);
-	//Serial.print(" ");
+
 	unsigned int temp1 = GetFrameType();
 	if (temp1 < 0x100)
 		Serial.print("0");
@@ -65,14 +52,15 @@ HapcanDevice::HapcanDevice()
 	, m_RxBufferIndex(0)
 	, m_RxBufferReadIndex(0)
 	, m_rxBufferOverflowCount(0)
-	, m_group(Hapcan::Config::InitialGroup)
-	, m_node(Hapcan::Config::InitialNode)
+	, m_node(Hapcan::Config::Node::SerialNumber2)
+	, m_group(Hapcan::Config::Node::SerialNumber3)
 	, m_receiveAnswerMessages(false)
 	, m_isInProgrammingMode(false)
+	, m_isInitialized(false)
+	, m_memoryAddress(0)
+	, m_memoryCommand(Programming::Command::Undefined)
 {
 	pHapcanDevice = this;
-	//memset(m_description, 32, 16);	// init description with spaces
-
 }
 
 // Initiate Hapcan Device. Call this method in Arduino setup() function
@@ -84,12 +72,39 @@ void HapcanDevice::Begin()
 	pinMode(Config::MCP::InterruptPin, INPUT);
 	attachInterrupt(digitalPinToInterrupt(Config::MCP::InterruptPin), OnCanReceivedDispatcher, FALLING);
 
-	//ReadEEpromConfig()
-	// odczyt node number i group z eepromu
-	// description
+	ReadEEPROMConfig();
 
-	// firmware started
-	//FIRMFLAG |= 1;      // set flag "firmware started and ready for interrupts"
+	m_isInitialized = true;
+}
+
+void HapcanDevice::ReadEEPROMConfig()
+{
+	// node reading
+	m_node = EEPROM[0x26];
+
+	// save initial node value to EEPROM if not set
+	if (m_node == 0xFF)
+	{
+		EEPROM[0x26] = Config::Node::SerialNumber2;
+		m_node = Config::Node::SerialNumber2;
+	}
+
+	m_group = EEPROM[0x27];
+
+	// save initial group value to EEPROM if not set
+	if (m_group == 0xFF)
+	{
+		EEPROM[0x27] = Config::Node::SerialNumber3;
+		m_node = Config::Node::SerialNumber3;
+	}
+
+	// read description
+	for (byte i = 0; i < 16; i++)
+	{
+		m_description[i] = EEPROM[0x30 + i];
+		if (m_description[i] == 0xFF)
+			m_description[i] = 0;
+	}
 }
 
 // Add message to RX FIFO buffer, with overflow check
@@ -135,40 +150,9 @@ void HapcanDevice::OnCanReceivedDispatcher()
 // Method is called on CAN MCP Interrupt. It reads message and put it into RX FIFO buffer
 void HapcanDevice::OnCanReceived()
 {
-
-	//// main firmware ready flag
-	//if (!(FIRMFLAG & 1))         // main firmware is not ready yet
-	//	return;
-	//if (!(CANFULL & 1))
-	//	return;
-
-	//	return;
-	//if (RXFRAME1 != 0x10) // accept only frames beginning with 0x10
-	//	return;
-
-	//switch (RXFRAME2) {
-	//case 0x80:
-	//	if (RXD2 != 0)                   // reject ask with GROUP_ID!=0
-	//		return;
-	//	if (RXD3 != 0 && RXD3 != TXGROUP)  // accept ask to this group or all groups
-	//		return;
-	//	// code
-	//	break;
-	//case 0x90:
-	//	if (RXD2 != TXNODE || RXD3 != TXGROUP)   // accept ask to this module
-	//		return;
-	//	// code
-	//	break;
-	//case 0xA0:
-	//	if (RXD2 != TXNODE || RXD3 != TXGROUP)   // acceptask to this module
-	//		return;
-	//	// code
-	//	break;
-	//default:
-	//	return;
-	//}
-
-
+	// don't process any message until device is full initialized
+	if (!m_isInitialized)
+		return;
 
 	byte len = 0;
 	byte rxBuffer[8];
@@ -218,6 +202,12 @@ bool HapcanDevice::ProcessRxBuffer()
 
 		// TODO czy to jest do tego noda w takim razie?
 
+		if (m_isInProgrammingMode)
+		{
+			ProcessProgrammingMessage(message);
+			return true;
+		}
+
 		if (frameTypeCategory < Hapcan::Message::NormalMessageCategory)
 			ProcessSystemMessage(message);
 		//else
@@ -255,28 +245,36 @@ bool HapcanDevice::MatchNode(HapcanMessage* message)
 	return false;
 }
 
+void HapcanDevice::ProcessProgrammingMessage(HapcanMessage* message)
+{
+	unsigned int frameType = message->GetFrameType();
+	switch (frameType)
+	{
+	case Message::System::AddressFrame:
+		AddressFrameAction(message);
+		break;
+	case Message::System::DataFrame:
+		DataFrameAction(message);
+		break;
+	case Message::System::ExitAllFromBootloaderProgrammingMode:
+		ProgrammingModeAction(frameType);
+		break;
+	case Message::System::ExitOneNodeFromBootloaderProgrammingMode:
+		if (message->GetNode() == m_node && message->GetGroup() == m_group)
+			ProgrammingModeAction(frameType);
+		break;
+	}
+}
+
 // Process system massage type
 bool HapcanDevice::ProcessSystemMessage(HapcanMessage* message)
 {
 	unsigned int frameType = message->GetFrameType();
 	switch(frameType)
 	{
-	case Message::System::ExitAllFromBootloaderProgrammingMode:
-		ProgrammingModeAction(frameType);
-		break;
-	case Message::System::ExitOneNodeFromBootloaderProgrammingMode:
-		if (MatchNode(message))
-			ProgrammingModeAction(frameType);
-	case Message::System::AddressFrame:
-		//TODO: address frame
-		break;
-	case Message::System::DataFrame:
-		//TODO: data frame
-		break;
-
 	case Message::System::EnterProgrammingMode:
 		if (MatchNode(message))
-			ProgrammingModeAction(frameType);
+			EnterProgrammingModeAction(frameType);
 		break;
 	case Message::System::RebootRequestToGroup:
 		if (MatchGroup(message))
@@ -341,9 +339,19 @@ bool HapcanDevice::ProcessSystemMessage(HapcanMessage* message)
 			DeviceIDAction(frameType);
 		break;
 
-		//const unsigned int DeviceIDRequestToNode = 0x111;
-		//const unsigned int UptimeRequestToGroup = 0x112;
-		//const unsigned int UptimeRequestToNode = 0x113;
+	case Message::System::DeviceIDRequestToNode:
+		if (MatchNode(message))
+			DeviceIDAction(frameType);
+		break;
+	//case Message::System::UptimeRequestToGroup:
+	//	if (MatchGroup(message))
+	//		UptimeAction(frameType);
+	//	break;
+	//case Message::System::UptimeRequestToNode:
+	//	if (MatchNode(message))
+	//		UptimeAction(frameType);
+	//	break;
+
 		//const unsigned int HealthCheckRequestToGroup = 0x114;
 		//const unsigned int HealthCheckRequestToNode = 0x115;
 	default: 
@@ -371,21 +379,97 @@ void HapcanDevice::Send(HapcanMessage& message)
 //-- BOOTLOADER ACTIONS ----------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------
 
+// Enter programming mode
+void HapcanDevice::EnterProgrammingModeAction(unsigned int frameType)
+{
+	m_isInProgrammingMode = true;
+	
+	HapcanMessage message;
+	message.BuildIdPart(frameType, true, m_node, m_group);
+	message.m_data[2] = Config::BootLoader::BootloaderVersion;
+	message.m_data[3] = Config::BootLoader::BootloaderRevision;
+
+	OA_LOG("> Entering programming mode");
+	Send(message);
+}
+
+// Address frame handling in programming mode
+void HapcanDevice::AddressFrameAction(HapcanMessage* inputMessage)
+{
+	//Currently only EEPROM programming is supported. Hapcan EEPROM is on 0xF00000 - 0xF003FF (1kB)
+	if (inputMessage->m_data[0] != 0xF0)
+	{
+		ErrorFrameAction(inputMessage);
+		return;
+	}
+
+	m_memoryAddress = ((int) inputMessage->m_data[1] << 8) + inputMessage->m_data[2];
+	m_memoryCommand = inputMessage->m_data[5];
+
+	if (m_memoryAddress > EEPROM.length())
+	{
+		ErrorFrameAction(inputMessage);
+		return;
+	}
+
+	inputMessage->SetAnswer();
+
+	OA_LOG("> Address frame");
+	Send(*inputMessage);
+}
+
+// Data frame handling in programming mode
+void HapcanDevice::DataFrameAction(HapcanMessage* inputMessage)
+{
+	switch (m_memoryCommand)
+	{
+	case Programming::Command::Undefined:
+		ErrorFrameAction(inputMessage);
+		return;
+	case Programming::Command::Read:
+		for (byte i = 0; i < 8; i++)
+			inputMessage->m_data[i] = EEPROM[m_memoryAddress+i];
+		break;
+	case Programming::Command::Write:
+		for (byte i = 0; i < 8; i++)
+		{
+			EEPROM[m_memoryAddress + i] = inputMessage->m_data[i];
+			inputMessage->m_data[i] = EEPROM[m_memoryAddress + i]; // read EEPROM and send it back, it should be the same
+		}
+		break;
+	}
+
+	inputMessage->SetAnswer();
+
+	OA_LOG("> Data frame");
+	Send(*inputMessage);
+}
+
+// Send error frame
+void HapcanDevice::ErrorFrameAction(HapcanMessage* inputMessage)
+{
+	HapcanMessage message;
+	message.BuildIdPart(Message::System::ErrorFrame, true, m_node, m_group);
+	message.m_data[2] = Config::BootLoader::BootloaderVersion;
+	message.m_data[3] = Config::BootLoader::BootloaderRevision;
+
+	OA_LOG("> Error Frame");
+	Send(message);
+}
+
 // Handle programming mode 
 void HapcanDevice::ProgrammingModeAction(unsigned int frameType)
 {
 	switch (frameType)
 	{
-	case Message::System::EnterProgrammingMode:
-		OA_LOG("> Entering programming mode");
-		m_isInProgrammingMode = true;
-		break;
 	case Message::System::ExitAllFromBootloaderProgrammingMode:
 	case Message::System::ExitOneNodeFromBootloaderProgrammingMode:
 		OA_LOG("> Exiting programming mode");
-		m_isInProgrammingMode = false;
+		if (m_isInProgrammingMode)
+			RebootAction();
 		break;
 	}
+
 }
 
 // Reboots the device. No Message is sent to CAN BUS.
@@ -467,7 +551,11 @@ void HapcanDevice::NodeDescriptionAction(unsigned int frameType)
 // Reset node and group to default values
 void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
 {
-	// TODO: reset node and group
+	EEPROM[0x26] = Config::Node::SerialNumber2;
+	EEPROM[0x27] = Config::Node::SerialNumber3;
+
+	m_node = Config::Node::SerialNumber2;
+	m_group = Config::Node::SerialNumber3;
 
 	HapcanMessage message;
 	message.BuildIdPart(frameType, true, m_node, m_group);
