@@ -39,8 +39,8 @@ namespace Onixarts
 
 				namespace Firmware
 				{
-					const byte ApplicationType = 0x20;			// application (hardware) type (such as button, relay, dimmer) 1-10 reserved for Hapcan modules, 102 - ethernet
-					const byte ApplicationVersion = 0;			// application (hardware) version
+					const byte ApplicationType = 50;			// application (hardware) type (such as button, relay, dimmer) 1-10 Hapcan modules, 102 - ethernet, 50 - default Hapcanuino empty device
+					const byte ApplicationVersion = 0;			// application (hardware) version, 0 - default Hapcanuino empty device
 					const byte FirmwareVersion = 0;				// firmware version
 					const int FirmwareRevision = 1;				// firmware revision
 				}
@@ -71,6 +71,25 @@ namespace Onixarts
 				
 			}
 
+			// Do not modiffy CoreConfig, unless You know what are You doing ;). Go find another config.
+			namespace CoreConfig
+			{
+				const byte BoxCount = 32; // stick to 2^n
+
+				namespace EEPROM
+				{
+					const byte BoxEnableAddress = 0x40;
+					const byte BoxConfigAddress = 0x80;
+				}
+			}
+			
+			namespace BoxOperator 
+			{
+				const byte Ignore = 0x00;
+				const byte Equal = 0x01;
+				const byte Different = 0x02;
+			}
+			
 			namespace Message
 			{
 				//const byte SystemMessage0x00Flag = 0x00;

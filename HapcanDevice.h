@@ -53,6 +53,82 @@ namespace Onixarts
 					void PrintToSerial();
 			};
 
+			// this structure has to have 19 Bytes. Don't change it. It is stored in EEPROM.
+			struct BoxConfigStruct
+			{
+				byte data[19];
+				//unsigned int frameType;
+				//byte senderNode;
+				//byte senderGroup;
+				//byte data[8];
+				//byte operator_1_4;
+				//byte operator_5_8;
+				//byte operator_9_12;
+				//byte instruction;
+				//byte param1;
+				//byte param2;
+				//byte param3;
+
+				bool Accept(HapcanMessage* message)
+				{
+					if (!Compare(0, highByte(message->GetFrameType())))
+						return false;
+					if (!Compare(1, lowByte(message->GetFrameType())))
+						return false;
+					if (!Compare(2, message->GetNode() ))
+						return false;
+					if (!Compare(3, message->GetGroup()))
+						return false;
+					for (byte i = 0; i < 8; i++)
+					{
+						if (!Compare(4+i, message->m_data[i]))
+							return false;
+					}
+
+					return true;
+				}
+
+				bool Compare(byte byteNumber, byte messageByte)
+				{
+//					Serial.print(data[byteNumber], HEX);
+					
+					byte compareOperator = data[12 + (byteNumber / 4)];
+					compareOperator = compareOperator >> ((byteNumber % 4) * 2);
+					switch (compareOperator & 0x03)
+					{
+					case BoxOperator::Ignore:
+					{
+						//Serial.print(" xx ");
+						//Serial.println(messageByte, HEX);
+						return true;
+					}
+					case BoxOperator::Equal:
+					{
+						//Serial.print(" == ");
+						//Serial.println(messageByte, HEX);
+
+						if (data[byteNumber] == messageByte)
+							return true;
+					}
+						break;
+					case BoxOperator::Different:
+					{
+						//Serial.print(" != ");
+						//Serial.println(messageByte, HEX);
+
+						if (data[byteNumber] != messageByte)
+							return true;
+					}
+						break;
+//					default:
+						//Serial.print("error: ");
+						//Serial.println(compareOperator & 0x03);
+					}
+//					Serial.println(" FALSE ");
+					return false;
+				}
+			};
+
 			class HapcanDevice
 			{
 				MCP_CAN CAN;
@@ -72,6 +148,7 @@ namespace Onixarts
 				void AddMessageToRxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
 				bool ProcessSystemMessage(HapcanMessage * message);
+				bool ProcessNormalMessage(HapcanMessage * message);
 				bool ReadRxBuffer(HapcanMessage** message);
 				bool MatchGroup(HapcanMessage* message);
 				bool MatchNode(HapcanMessage* message);

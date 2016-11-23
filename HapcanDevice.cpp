@@ -183,24 +183,6 @@ bool HapcanDevice::ProcessRxBuffer()
 		message->PrintToSerial();
 
 		byte frameTypeCategory = message->GetFrameTypeCategory();
-		//Serial.println(frame)
-
-		// messages less than 0x100 are for every node
-		//if (frameTypeCategory < Hapcan::Message::SystemMessage0x10Flag)
-		//{
-		//	// TODO: programming messages
-		//	OA_LOG("wiadomosc programuj¹ca < 0x100");
-		//	return true;
-		//}
-
-		//if (message->m_data[2] == 0x0 && message->m_data[3] == m_group)
-		//	return false;
-
-		//TODO: przeniesc sprawdzanie wiadomosci do receiva?
-
-		//TODO: czy to wiaomoœæ do wszystkich w tej grupie
-
-		// TODO czy to jest do tego noda w takim razie?
 
 		if (m_isInProgrammingMode)
 		{
@@ -210,20 +192,9 @@ bool HapcanDevice::ProcessRxBuffer()
 
 		if (frameTypeCategory < Hapcan::Message::NormalMessageCategory)
 			ProcessSystemMessage(message);
-		//else
-//			ProcessNormalMessage(message);
+		else
+			ProcessNormalMessage(message);
 
-		//switch (frameTypeCategory)
-		//{
-//		case Hapcan::Message::SystemMessage0x10Flag:
-			//ProcessSystemMessage(message);
-			//break;
-		//case Hapcan::Message::SystemMessage0x11Flag:
-		//	//Serial.println("wiadomosc systemowa 11");
-		//case Hapcan::Message::NormalMessage0x30Flag:
-		//	//Serial.println("wiadomosc normalna od urz¹dzenia");
-		//	break;
-		//}
 		return true;
 	}
 	return false;
@@ -264,6 +235,40 @@ void HapcanDevice::ProcessProgrammingMessage(HapcanMessage* message)
 			ProgrammingModeAction(frameType);
 		break;
 	}
+}
+
+// Process normal message type. Checks box enable bits and test HAPCAN message conditions. 
+bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
+{
+	//unsigned long aaa1 = millis();
+	unsigned int boxConfigAddress = CoreConfig::EEPROM::BoxConfigAddress;
+	for (byte i = 0; i < CoreConfig::BoxCount/8; i++)
+	{
+		byte boxEnableFlags = EEPROM[CoreConfig::EEPROM::BoxEnableAddress + i];
+		for (byte boxBit = 0; boxBit < 8; boxBit++)
+		{
+			if (boxEnableFlags & 0x01)
+			{
+				BoxConfigStruct boxConfig;
+				//Serial.println(CoreConfig::EEPROM::BoxConfigAddress + sizeof(BoxConfigStruct)*boxBit + i * 8 * sizeof(BoxConfigStruct), HEX);
+				EEPROM.get(CoreConfig::EEPROM::BoxConfigAddress + sizeof(BoxConfigStruct)*boxBit + i*8*sizeof(BoxConfigStruct), boxConfig);
+				if (boxConfig.Accept(message))
+				{
+					OA_LOG("Accepted");
+					// TODO: odpaliæ procedurê obs³ugi instrukcji
+				}
+			}
+			// TODO: AAAAAAAAAAAAAA usun¹c to
+			//return false;
+
+			boxEnableFlags = boxEnableFlags >> 1;
+		}
+	}
+	return false;
+	//unsigned long aaa2 = millis();
+	//Serial.println(aaa1);
+	//Serial.print("-");
+	//Serial.println(aaa2);
 }
 
 // Process system massage type
