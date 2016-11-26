@@ -59,6 +59,7 @@ HapcanDevice::HapcanDevice()
 	, m_isInitialized(false)
 	, m_memoryAddress(0)
 	, m_memoryCommand(Programming::Command::Undefined)
+	, m_messageAcceptedDelegate(NULL)
 {
 	pHapcanDevice = this;
 }
@@ -255,12 +256,12 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 				if (boxConfig.Accept(message))
 				{
 					OA_LOG("Accepted");
-					// TODO: odpaliæ procedurê obs³ugi instrukcji
+					if (m_messageAcceptedDelegate != NULL)
+						m_messageAcceptedDelegate(message, boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18]);
+
+
 				}
 			}
-			// TODO: AAAAAAAAAAAAAA usun¹c to
-			//return false;
-
 			boxEnableFlags = boxEnableFlags >> 1;
 		}
 	}

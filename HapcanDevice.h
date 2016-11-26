@@ -53,6 +53,8 @@ namespace Onixarts
 					void PrintToSerial();
 			};
 
+			typedef void(*MessageAcceptedEventDelegate)(HapcanMessage* message, byte instruction, byte param1, byte param2, byte param3);
+
 			// this structure has to have 19 Bytes. Don't change it. It is stored in EEPROM.
 			struct BoxConfigStruct
 			{
@@ -144,6 +146,7 @@ namespace Onixarts
 				unsigned int m_memoryAddress;
 				byte m_memoryCommand;
 				byte m_description[16];
+				MessageAcceptedEventDelegate	m_messageAcceptedDelegate;
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
@@ -178,6 +181,7 @@ namespace Onixarts
 
 				void Begin(); 
 				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
+				void OnMessageAcceptedEvent(MessageAcceptedEventDelegate eventDelegate) { m_messageAcceptedDelegate = eventDelegate; }
 				void OnCanReceived();
 
 				void Update();
