@@ -246,7 +246,7 @@ ModelManifest.xml
 
 # visual micro addon for Visual Studio 
 __vm/
-**/*.vcxproj
+*.vcxproj
 *.sln
 *.vcxproj.filters
 examples/Test/
