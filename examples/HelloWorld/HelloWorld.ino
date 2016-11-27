@@ -1,4 +1,6 @@
 // Hapcanuino helps to implement Hapcan (Home Automation Project) compatible devices on Arduino board.
+// 
+// Code explanation: https://github.com/Onixarts/Hapcanuino/wiki/HelloWorld
 // Github: https://github.com/Onixarts/Hapcanuino
 // Author's site: http://onixarts.pl
 // Contact: software@onixarts.pl
