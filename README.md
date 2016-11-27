@@ -2,6 +2,8 @@
 Hapcanuino is a library that simplifies creation of Arduino based module for [Hapcan](http://hapcan.com/) Home Automation Project.
 Hapcan uses CAN bus to communicate between modules which are made with PIC microcontrollers. Hapcanuino brings to Arduino (and AVR) users ability to easily creating Hapcan compatible modules.
 
+**Note this project is currently in early developing phase.**
+
 ##Hardware requirements
 - Arduino (currently only Arduino UNO R3 was tested)
 - MCP2515 CAN Controller board (tested), or CAN Shield for Arduino.
