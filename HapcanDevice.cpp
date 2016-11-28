@@ -121,6 +121,8 @@ void HapcanDevice::AddMessageToRxBuffer(HapcanMessage& message)
 	if (m_RxBufferIndex == m_RxBufferReadIndex)
 	{
 		m_rxBufferOverflowCount++;
+		OA_LOG_LINE("RX Buffer overflow. Count = ");
+		OA_LOG(m_rxBufferOverflowCount);
 	}
 }
 

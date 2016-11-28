@@ -5,8 +5,10 @@
 
 #ifdef OA_DEBUG
 #define OA_LOG(text) Serial.println(text)
+#define OA_LOG_LINE(text) Serial.print(text)
 #else
 #define OA_LOG(text) //empty
+#define OA_LOG_LINE(text) //empty
 #endif	
 
 namespace Onixarts
@@ -17,7 +19,7 @@ namespace Onixarts
 		{
 			namespace Config
 			{
-				const byte RxFifoQueueSize = 10;				// max 255
+				const byte RxFifoQueueSize = 20;				// max 255
 				
 				namespace Hardware
 				{

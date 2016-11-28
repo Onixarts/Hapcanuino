@@ -157,7 +157,7 @@ namespace Onixarts
 				bool MatchNode(HapcanMessage* message);
 				void ProcessProgrammingMessage(HapcanMessage* message);
 				void ReadEEPROMConfig();
-
+				void Send(HapcanMessage & message);
 
 				void AddressFrameAction(HapcanMessage* inputMessage);
 				void DataFrameAction(HapcanMessage* inputMessage);
@@ -180,16 +180,16 @@ namespace Onixarts
 				HapcanDevice();
 
 				void Begin(); 
-				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
-				void OnMessageAcceptedEvent(MessageAcceptedEventDelegate eventDelegate) { m_messageAcceptedDelegate = eventDelegate; }
-				void OnCanReceived();
-
 				void Update();
+
+				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
+				
+				void OnMessageAcceptedEvent(MessageAcceptedEventDelegate eventDelegate) { m_messageAcceptedDelegate = eventDelegate; }
 				
 				unsigned long GetRxBufferOverflowCount();
 
-				void Send(HapcanMessage & message);
-
+				// CAN module Interrupt handling methods. Don't use them directly.
+				void OnCanReceived();
 				static void OnCanReceivedDispatcher();
 			};
 		}
