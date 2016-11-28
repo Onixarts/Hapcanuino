@@ -12,7 +12,7 @@ Hapcan uses CAN bus to communicate between modules which are made with PIC micro
 
 ##Software requirements
 - [Hapcan Programmer](http://hapcan.com/software/hap/)
-- MCP_CAN library for Arduino
+- [MCP_CAN](https://github.com/coryjfowler/MCP_CAN_lib) library for Arduino
 - Library is writing in Visual Studio with Visual Micro addon, so no highlighting for Arduino Sketch editor is available now
 
 ##Addidional Help
