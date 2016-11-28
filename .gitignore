@@ -250,3 +250,4 @@ __vm/
 *.sln
 *.vcxproj.filters
 examples/Test/
+/Onixarts_Hapcanuino.ino

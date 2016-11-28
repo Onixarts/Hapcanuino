@@ -68,7 +68,8 @@ HapcanDevice::HapcanDevice()
 void HapcanDevice::Begin()
 {
 	//Hapcan bus speed is 125Kbps
-	CAN.begin(CAN_125KBPS, Config::MCP::OscillatorFrequency);
+	CAN.begin(MCP_ANY, CAN_125KBPS, Config::MCP::OscillatorFrequency);
+	CAN.setMode(MCP_NORMAL);
 
 	pinMode(Config::MCP::InterruptPin, INPUT);
 	attachInterrupt(digitalPinToInterrupt(Config::MCP::InterruptPin), OnCanReceivedDispatcher, FALLING);
@@ -157,8 +158,9 @@ void HapcanDevice::OnCanReceived()
 
 	byte len = 0;
 	byte rxBuffer[8];
-	CAN.readMsgBuf(&len, rxBuffer);              // Read data: len = data length, buf = data byte(s)
-	long unsigned int rxId = CAN.getCanId();
+	long unsigned int rxId;
+	byte ext;
+	CAN.readMsgBuf(&rxId, &ext, &len, rxBuffer);
 	HapcanMessage hapcanMessage;
 	hapcanMessage.Parse(rxId, rxBuffer);
 

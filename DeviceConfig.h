@@ -49,7 +49,7 @@ namespace Onixarts
 				{
 					const byte InterruptPin = 2;				// CAN module interrupt is connected to this pin (see https://www.arduino.cc/en/Reference/AttachInterrupt)
 					const byte CSPin = 10;						// SPI CS pin
-					const byte OscillatorFrequency = MCP_8MHz;	// MCP oscillator frequency on MCP CAN module (or MCP_16MHz)
+					const byte OscillatorFrequency = MCP_8MHZ;	// MCP oscillator frequency on MCP CAN module (or MCP_16MHz)
 				}
 
 				namespace BootLoader
