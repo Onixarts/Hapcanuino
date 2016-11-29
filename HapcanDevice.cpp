@@ -259,7 +259,10 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 				EEPROM.get(CoreConfig::EEPROM::BoxConfigAddress + sizeof(BoxConfigStruct)*boxBit + i*8*sizeof(BoxConfigStruct), boxConfig);
 				if (boxConfig.Accept(message))
 				{
-					OA_LOG("Accepted");
+					OA_LOG_LINE("> Accepted box: ");
+					OA_LOG_LINE((boxBit + i * 8)+1);
+					OA_LOG_LINE(" instr: ");
+					OA_LOG(boxConfig.data[15]);
 					if (m_messageAcceptedDelegate != NULL)
 						m_messageAcceptedDelegate(message, boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18]);
 
