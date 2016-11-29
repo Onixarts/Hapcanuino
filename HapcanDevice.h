@@ -26,25 +26,29 @@ namespace Onixarts
 					byte m_data[8];
 
 					HapcanMessage();
-					void Parse(unsigned long id, byte* buffer)
+					HapcanMessage(unsigned long id, byte* buffer);
+					HapcanMessage(unsigned int frameType, bool isAnswer, byte node, byte group);
+					HapcanMessage(unsigned int frameType, bool isAnswer);
+					void InitMessageId(unsigned int frameType, bool isAnswer, byte node, byte group)
 					{
-						m_id = id;
-						memcpy(m_data, buffer, 8 );
-					}
-
-					void BuildIdPart(unsigned int frameType, bool isAnswer,  byte node, byte group ) 
-					{ 
 						m_id = 0;
-						//m_id |= (unsigned long)frameTypeCategory << 21;
-						m_id |= (unsigned long)frameType << 17;//13;
+						m_id |= (unsigned long)frameType << 17;
 						if (isAnswer)
 							m_id |= (unsigned long)1 << 16;
 						m_id |= (unsigned long)node << 8;
 						m_id |= group;
 					}
+
+					// Fills node and group number if needed
+					void Prepare(byte node, byte group)
+					{
+						if( GetNode() == 0 )
+							m_id |= (unsigned long)node << 8;
+						if (GetGroup() == 0)
+							m_id |= group;
+					}
 						
 					byte GetFrameTypeCategory() { return (byte) (m_id >> 21) ;}
-					//byte GetFrameType() { return (byte) (((m_id >> 17) << 4 ) | ((m_id >> 16) & 0x1)); }
 					unsigned int GetFrameType() { return (unsigned int)(((m_id >> 17) )); }
 					bool IsAnswer() { return (bool) ((m_id >> 16) & 0x1); }
 					void SetAnswer() { m_id |= (unsigned long)1 << 16; }
@@ -157,7 +161,6 @@ namespace Onixarts
 				bool MatchNode(HapcanMessage* message);
 				void ProcessProgrammingMessage(HapcanMessage* message);
 				void ReadEEPROMConfig();
-				void Send(HapcanMessage & message);
 
 				void AddressFrameAction(HapcanMessage* inputMessage);
 				void DataFrameAction(HapcanMessage* inputMessage);
@@ -181,6 +184,7 @@ namespace Onixarts
 
 				void Begin(); 
 				void Update();
+				void Send(HapcanMessage & message);
 
 				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
 				

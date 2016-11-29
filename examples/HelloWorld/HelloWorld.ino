@@ -66,8 +66,19 @@ void DoInstruction(Hapcan::HapcanMessage* message, byte instruction, byte param1
 {
 	switch (instruction)
 	{
-	case 1: digitalWrite(PIN7, digitalRead(PIN7) == LOW);
+	case 1: 
+	{
+		// toggle LED
+		digitalWrite(PIN7, digitalRead(PIN7) == LOW);
+
+		// send message confirms status change of frame type 0x333 (custom)
+		Hapcan::HapcanMessage statusMessage(0x333, false);
+		statusMessage.m_data[2] = 7;	// set up byte 3 as 7
+		statusMessage.m_data[3] = digitalRead(PIN7) == LOW ? 0x00 : 0x01; // set byte 4 to 0 = LED OFF, 1 = LED ON
+		hapcanDevice.Send(statusMessage);
+
 		break;
-		// TODO: place other instructions here
+	}
+	// case 2: place another instruction code here; break;
 	}
 }

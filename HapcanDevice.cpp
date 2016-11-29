@@ -5,9 +5,38 @@
 
 using namespace Onixarts::HomeAutomationCore::Hapcan;
 
+HapcanDevice* pHapcanDevice = NULL;
+
+// Default constructor, initializes empty HapcanMessage
 HapcanMessage::HapcanMessage()
 : m_id(0)
 {
+	// reset all data fields
+	memset(m_data, 0xFF, 8);
+}
+
+// Constructs HapcanMessage object from CAN id and buffer. Buffer must have 8 bytes length
+HapcanMessage::HapcanMessage(unsigned long id, byte* buffer)
+: m_id(id)
+{
+	
+	memcpy(m_data, buffer, 8);
+}
+
+// Constructs HapcanMessage object, Used to send data
+HapcanMessage::HapcanMessage(unsigned int frameType, bool isAnswer, byte node, byte group)
+{
+	InitMessageId(frameType, isAnswer, node, group);
+	
+	// reset all data fields
+	memset(m_data, 0xFF, 8);
+}
+
+// Constructs HapcanMessage object, Used to send data. Node number and group is filled by device's data
+HapcanMessage::HapcanMessage(unsigned int frameType, bool isAnswer)
+{
+	InitMessageId(frameType, isAnswer, 0, 0);
+	
 	// reset all data fields
 	memset(m_data, 0xFF, 8);
 }
@@ -44,8 +73,6 @@ void HapcanMessage::PrintToSerial()
 	Serial.println();
 #endif
 }
-
-HapcanDevice* pHapcanDevice = NULL;
 
 HapcanDevice::HapcanDevice()
 	:CAN(Config::MCP::CSPin)
@@ -163,8 +190,7 @@ void HapcanDevice::OnCanReceived()
 	long unsigned int rxId;
 	byte ext;
 	CAN.readMsgBuf(&rxId, &ext, &len, rxBuffer);
-	HapcanMessage hapcanMessage;
-	hapcanMessage.Parse(rxId, rxBuffer);
+	HapcanMessage hapcanMessage(rxId, rxBuffer);
 
 	if (!m_receiveAnswerMessages && hapcanMessage.IsAnswer())				// ignore answer messages
 		return;
@@ -384,6 +410,7 @@ unsigned long HapcanDevice::GetRxBufferOverflowCount()
 // Send HapcanMessage to the CAN BUS
 void HapcanDevice::Send(HapcanMessage& message)
 {
+	message.Prepare(m_node, m_group);
 	message.PrintToSerial();
 	CAN.sendMsgBuf(message.m_id, 1, 8, message.m_data);
 }
@@ -397,8 +424,7 @@ void HapcanDevice::EnterProgrammingModeAction(unsigned int frameType)
 {
 	m_isInProgrammingMode = true;
 	
-	HapcanMessage message;
-	message.BuildIdPart(frameType, true, m_node, m_group);
+	HapcanMessage message(frameType, true, m_node, m_group);
 	message.m_data[2] = Config::BootLoader::BootloaderVersion;
 	message.m_data[3] = Config::BootLoader::BootloaderRevision;
 
@@ -461,8 +487,7 @@ void HapcanDevice::DataFrameAction(HapcanMessage* inputMessage)
 // Send error frame
 void HapcanDevice::ErrorFrameAction(HapcanMessage* inputMessage)
 {
-	HapcanMessage message;
-	message.BuildIdPart(Message::System::ErrorFrame, true, m_node, m_group);
+	HapcanMessage message(Message::System::ErrorFrame, true, m_node, m_group);
 	message.m_data[2] = Config::BootLoader::BootloaderVersion;
 	message.m_data[3] = Config::BootLoader::BootloaderRevision;
 
@@ -496,8 +521,7 @@ void HapcanDevice::RebootAction()
 // Send Can Node ID
 void HapcanDevice::CanNodeIdAction(unsigned int frameType)
 {
-	HapcanMessage message;
-	message.BuildIdPart(frameType, true, m_node, m_group);
+	HapcanMessage message(frameType, true, m_node, m_group);
 	message.m_data[0] = Config::Hardware::HardwareType1;
 	message.m_data[1] = Config::Hardware::HardwareType2;
 	message.m_data[2] = Config::Hardware::HardwareVersion;
@@ -515,8 +539,7 @@ void HapcanDevice::CanNodeIdAction(unsigned int frameType)
 void HapcanDevice::CanFirmwareIdAction(unsigned int frameType)
 {
 	//TODO: test if firmware is OK, return error frame then
-	HapcanMessage message;
-	message.BuildIdPart(frameType, true, m_node, m_group);
+	HapcanMessage message(frameType, true, m_node, m_group);
 	message.m_data[0] = Config::Hardware::HardwareType1;
 	message.m_data[1] = Config::Hardware::HardwareType2;
 	message.m_data[2] = Config::Hardware::HardwareVersion;
@@ -533,8 +556,7 @@ void HapcanDevice::CanFirmwareIdAction(unsigned int frameType)
 // Send supply voltage information (currently not supported, returns 0V)
 void HapcanDevice::SupplyVoltageAction(unsigned int frameType)
 {
-	HapcanMessage message;
-	message.BuildIdPart(frameType, true, m_node, m_group);
+	HapcanMessage message;(frameType, true, m_node, m_group);
 	message.m_data[0] = 0;
 	message.m_data[1] = 0;
 	message.m_data[2] = 0;
@@ -546,8 +568,7 @@ void HapcanDevice::SupplyVoltageAction(unsigned int frameType)
 
 void HapcanDevice::NodeDescriptionAction(unsigned int frameType)
 {
-	HapcanMessage message;
-	message.BuildIdPart(frameType, true, m_node, m_group);
+	HapcanMessage message(frameType, true, m_node, m_group);
 	for(byte i = 0; i < 8; i++)
 		message.m_data[i] = m_description[i];
 
@@ -570,8 +591,7 @@ void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
 	m_node = Config::Node::SerialNumber2;
 	m_group = Config::Node::SerialNumber3;
 
-	HapcanMessage message;
-	message.BuildIdPart(frameType, true, m_node, m_group);
+	HapcanMessage message(frameType, true, m_node, m_group);
 
 	OA_LOG("> SetDefaultNodeAndGroup");
 	Send(message);
@@ -580,8 +600,7 @@ void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
 // Default implementation for status Request. Override this method in derived class 
 void HapcanDevice::StatusRequestAction(HapcanMessage* message)
 {
-	HapcanMessage messageOut;
-	messageOut.BuildIdPart(message->GetFrameType(), true, m_node, m_group);
+	HapcanMessage messageOut(message->GetFrameType(), true, m_node, m_group);
 
 	OA_LOG("> StatusRequest");
 	Send(messageOut);
@@ -590,8 +609,7 @@ void HapcanDevice::StatusRequestAction(HapcanMessage* message)
 // Default implementation for control module. Override this method in derived class 
 void HapcanDevice::ControlAction(HapcanMessage* message)
 {
-	HapcanMessage messageOut;
-	messageOut.BuildIdPart(message->GetFrameType(), true, m_node, m_group);
+	HapcanMessage messageOut(message->GetFrameType(), true, m_node, m_group);
 
 	OA_LOG("> Control");
 	Send(messageOut);
@@ -600,8 +618,7 @@ void HapcanDevice::ControlAction(HapcanMessage* message)
 // Send device (chip) ID 
 void HapcanDevice::DeviceIDAction(unsigned int frameType)
 {
-	HapcanMessage message;
-	message.BuildIdPart(frameType, true, m_node, m_group);
+	HapcanMessage message(frameType, true, m_node, m_group);
 	message.m_data[0] = Config::Hardware::DeviceId1;
 	message.m_data[1] = Config::Hardware::DeviceId2;
 
