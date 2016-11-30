@@ -57,7 +57,7 @@ namespace Onixarts
 					void PrintToSerial();
 			};
 
-			typedef void(*MessageAcceptedEventDelegate)(HapcanMessage* message, byte instruction, byte param1, byte param2, byte param3);
+			typedef void(*ExecuteInstructionDelegate)(byte instruction, byte param1, byte param2, byte param3, HapcanMessage& message);
 
 			// this structure has to have 19 Bytes. Don't change it. It is stored in EEPROM.
 			struct BoxConfigStruct
@@ -77,9 +77,9 @@ namespace Onixarts
 
 				bool Accept(HapcanMessage* message)
 				{
-					if (!Compare(0, highByte(message->GetFrameType())))
+					if (!Compare(0, (highByte(message->GetFrameType())) << 4))
 						return false;
-					if (!Compare(1, lowByte(message->GetFrameType())))
+					if (!Compare(1, (lowByte(message->GetFrameType())) << 4))
 						return false;
 					if (!Compare(2, message->GetNode() ))
 						return false;
@@ -152,7 +152,7 @@ namespace Onixarts
 				byte m_description[16];
 				unsigned long m_uptime;
 				unsigned long m_lastMillis;
-				MessageAcceptedEventDelegate	m_messageAcceptedDelegate;
+				ExecuteInstructionDelegate m_executeInstructionDelegate;
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
@@ -190,7 +190,7 @@ namespace Onixarts
 
 				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
 				
-				void OnMessageAcceptedEvent(MessageAcceptedEventDelegate eventDelegate) { m_messageAcceptedDelegate = eventDelegate; }
+				void SetExecuteInstructionDelegate(ExecuteInstructionDelegate eventDelegate) { m_executeInstructionDelegate = eventDelegate; }
 				
 				unsigned long GetRxBufferOverflowCount();
 

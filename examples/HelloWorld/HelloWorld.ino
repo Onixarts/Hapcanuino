@@ -29,8 +29,8 @@ using namespace Onixarts::HomeAutomationCore;
 // HapcanDevice class declaration
 Hapcan::HapcanDevice hapcanDevice;
 
-// Callback function to be called, when received message match box criteria
-void DoInstruction(Hapcan::HapcanMessage* message, byte instruction, byte param1, byte param2, byte param3);
+// Callback function to be called, when received message match box criteria or direct control message is received
+void ExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message);
 
 void setup()
 {
@@ -43,8 +43,8 @@ void setup()
 	// uncomment this to receive answer messages. Can cause RX buffer overflow and frame loss
 	//hapcanDevice.ReceiveAnswerMessages(true);
 
-	//set callback function to be called, when received message match box criteria
-	hapcanDevice.OnMessageAcceptedEvent(DoInstruction);
+	//set callback function to be called, when received message match box criteria or direct control message is received
+	hapcanDevice.SetExecuteInstructionDelegate(ExecuteInstruction);
 
 	// demo example, set pin7 as output
 	pinMode(PIN7, OUTPUT);
@@ -58,27 +58,38 @@ void loop()
 	// TODO: place your loop code here. This code should not block loop function for a long time
 }
 
-// Callback function is called when HAPCAN message match criteria
-// @message - hapcan message received from CAN
+// Callback function is called when HAPCAN message match box criteria or direct control message is received
 // @instruction - instruction defined in box to be called when message is match criteria
 // @param1-3 - parameters defined in box for instruction
-void DoInstruction(Hapcan::HapcanMessage* message, byte instruction, byte param1, byte param2, byte param3)
+// @message - hapcan message received from CAN
+void ExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message)
 {
+	bool ledStateChanged = false;
+
 	switch (instruction)
 	{
-	case 1: 
-	{
-		// toggle LED
+	case 1: // turn LED ON
+		digitalWrite(PIN7, HIGH);
+		ledStateChanged = true;
+		break;
+	case 2: // turn LED OFF
+		digitalWrite(PIN7, LOW);
+		ledStateChanged = true;
+		break;
+	case 3: // toggle LED
 		digitalWrite(PIN7, digitalRead(PIN7) == LOW);
+		ledStateChanged = true;
+		break;
+	//case 4: // put other instructions here; break;
+	}
 
-		// send message confirms status change of frame type 0x333 (custom)
+	// check, if LED change instruction was executed and send message to Hapcan
+	if (ledStateChanged)
+	{
+		// send message confirmed status change of frame type 0x333 (custom)
 		Hapcan::HapcanMessage statusMessage(0x333, false);
 		statusMessage.m_data[2] = 7;	// set up byte 3 as 7
-		statusMessage.m_data[3] = digitalRead(PIN7) == LOW ? 0x00 : 0x01; // set byte 4 to 0 = LED OFF, 1 = LED ON
+		statusMessage.m_data[3] = digitalRead(PIN7) == LOW ? 0x00 : 0x01; // set byte 4, 1 = LED ON, 0 = LED OFF
 		hapcanDevice.Send(statusMessage);
-
-		break;
-	}
-	// case 2: place another instruction code here; break;
 	}
 }

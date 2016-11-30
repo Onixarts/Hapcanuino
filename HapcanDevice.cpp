@@ -86,7 +86,7 @@ HapcanDevice::HapcanDevice()
 	, m_isInitialized(false)
 	, m_memoryAddress(0)
 	, m_memoryCommand(Programming::Command::Undefined)
-	, m_messageAcceptedDelegate(NULL)
+	, m_executeInstructionDelegate(NULL)
 	, m_uptime(0UL)
 	, m_lastMillis(0UL)
 {
@@ -305,10 +305,8 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 					OA_LOG_LINE((boxBit + i * 8)+1);
 					OA_LOG_LINE(" instr: ");
 					OA_LOG(boxConfig.data[15]);
-					if (m_messageAcceptedDelegate != NULL)
-						m_messageAcceptedDelegate(message, boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18]);
-
-
+					if (m_executeInstructionDelegate != NULL)
+						m_executeInstructionDelegate(boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18], *message);
 				}
 			}
 			boxEnableFlags = boxEnableFlags >> 1;
@@ -622,13 +620,12 @@ void HapcanDevice::StatusRequestAction(HapcanMessage* message)
 	Send(messageOut);
 }
 
-// Default implementation for control module. Override this method in derived class 
+// Default implementation for control module. Override this method in derived class or SetExecuteInstructionDelegate to use global callback function
 void HapcanDevice::ControlAction(HapcanMessage* message)
 {
-	HapcanMessage messageOut(message->GetFrameType(), true, m_node, m_group);
-
-	OA_LOG("> Control");
-	Send(messageOut);
+	OA_LOG("> Direct Control");
+	if (m_executeInstructionDelegate != NULL)
+		m_executeInstructionDelegate(message->m_data[0], message->m_data[1], message->m_data[4], message->m_data[5], *message);
 }
 
 // Send device (chip) ID 
