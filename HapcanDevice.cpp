@@ -87,6 +87,8 @@ HapcanDevice::HapcanDevice()
 	, m_memoryAddress(0)
 	, m_memoryCommand(Programming::Command::Undefined)
 	, m_messageAcceptedDelegate(NULL)
+	, m_uptime(0UL)
+	, m_lastMillis(0UL)
 {
 	pHapcanDevice = this;
 }
@@ -202,6 +204,8 @@ void HapcanDevice::OnCanReceived()
 void HapcanDevice::Update()
 {
 	ProcessRxBuffer();
+	
+	UpdateUptime();
 }
 
 // Checks if there is any new message to process and perform processing in this case
@@ -229,6 +233,18 @@ bool HapcanDevice::ProcessRxBuffer()
 		return true;
 	}
 	return false;
+}
+
+// Updates uptime counter
+void HapcanDevice::UpdateUptime()
+{
+	unsigned long currentMillis = millis();
+	unsigned long timeSpan = currentMillis - m_lastMillis;
+	if (timeSpan >= 1000)
+	{
+		m_uptime += timeSpan / 1000;
+		m_lastMillis = currentMillis;
+	}
 }
 
 // Checks if message is for nodes in current group or for all groups
@@ -382,14 +398,14 @@ bool HapcanDevice::ProcessSystemMessage(HapcanMessage* message)
 		if (MatchNode(message))
 			DeviceIDAction(frameType);
 		break;
-	//case Message::System::UptimeRequestToGroup:
-	//	if (MatchGroup(message))
-	//		UptimeAction(frameType);
-	//	break;
-	//case Message::System::UptimeRequestToNode:
-	//	if (MatchNode(message))
-	//		UptimeAction(frameType);
-	//	break;
+	case Message::System::UptimeRequestToGroup:
+		if (MatchGroup(message))
+			UptimeAction(frameType);
+		break;
+	case Message::System::UptimeRequestToNode:
+		if (MatchNode(message))
+			UptimeAction(frameType);
+		break;
 
 		//const unsigned int HealthCheckRequestToGroup = 0x114;
 		//const unsigned int HealthCheckRequestToNode = 0x115;
@@ -623,5 +639,18 @@ void HapcanDevice::DeviceIDAction(unsigned int frameType)
 	message.m_data[1] = Config::Hardware::DeviceId2;
 
 	OA_LOG("> DeviceID");
+	Send(message);
+}
+
+// Send uptime info
+void HapcanDevice::UptimeAction(unsigned int frameType)
+{
+	HapcanMessage message(frameType, true, m_node, m_group);
+	message.m_data[4] = (byte)(m_uptime >> 24);
+	message.m_data[5] = (byte)(m_uptime >> 16);
+	message.m_data[6] = (byte)(m_uptime >> 8);
+	message.m_data[7] = (byte)m_uptime;
+	
+	OA_LOG("> Uptime");
 	Send(message);
 }

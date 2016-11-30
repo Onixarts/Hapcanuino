@@ -150,10 +150,13 @@ namespace Onixarts
 				unsigned int m_memoryAddress;
 				byte m_memoryCommand;
 				byte m_description[16];
+				unsigned long m_uptime;
+				unsigned long m_lastMillis;
 				MessageAcceptedEventDelegate	m_messageAcceptedDelegate;
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
+				void UpdateUptime();
 				bool ProcessSystemMessage(HapcanMessage * message);
 				bool ProcessNormalMessage(HapcanMessage * message);
 				bool ReadRxBuffer(HapcanMessage** message);
@@ -174,8 +177,7 @@ namespace Onixarts
 				void NodeDescriptionAction(unsigned int frameType);
 				void SetDefaultNodeAndGroupAction(unsigned int frameType);
 				void DeviceIDAction(unsigned int frameType);
-				
-				//void UptimeAction(unsigned int frameType);
+				void UptimeAction(unsigned int frameType);
 
 				virtual void StatusRequestAction(HapcanMessage* message);
 				virtual void ControlAction(HapcanMessage* message);
