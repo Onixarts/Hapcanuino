@@ -80,6 +80,7 @@ namespace Onixarts
 
 				namespace EEPROM
 				{
+					const byte DescriptionAddress = 0x30;
 					const byte BoxEnableAddress = 0x40;
 					const byte BoxConfigAddress = 0x80;
 				}
@@ -157,21 +158,21 @@ namespace Onixarts
 				}
 			}
 
-			namespace Control
-			{
-				namespace Box
-				{
-					namespace Value 
-					{
-						const byte Enable = 0xDD;
-						const byte Disable = 0xDE;
-						const byte Toggle = 0xDF;
-					}
-					const byte Instruction = 0;
-					const byte BoxX = 1;
-					const byte BoxY = 2;
-				}
-			}
+			//namespace Control
+			//{
+			//	namespace Box
+			//	{
+			//		namespace Value 
+			//		{
+			//			const byte Enable = 0xDD;
+			//			const byte Disable = 0xDE;
+			//			const byte Toggle = 0xDF;
+			//		}
+			//		const byte Instruction = 0;
+			//		const byte BoxX = 1;
+			//		const byte BoxY = 2;
+			//	}
+			//}
 		}
 	}
 }

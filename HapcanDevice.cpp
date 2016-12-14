@@ -129,14 +129,6 @@ void HapcanDevice::ReadEEPROMConfig()
 		EEPROM[0x27] = Config::Node::SerialNumber3;
 		m_node = Config::Node::SerialNumber3;
 	}
-
-	// read description
-	for (byte i = 0; i < 16; i++)
-	{
-		m_description[i] = EEPROM[0x30 + i];
-		if (m_description[i] == 0xFF)
-			m_description[i] = 0;
-	}
 }
 
 // Add message to RX FIFO buffer, with overflow check
@@ -584,14 +576,14 @@ void HapcanDevice::SupplyVoltageAction(unsigned int frameType)
 void HapcanDevice::NodeDescriptionAction(unsigned int frameType)
 {
 	HapcanMessage message(frameType, true, m_node, m_group);
-	for(byte i = 0; i < 8; i++)
-		message.m_data[i] = m_description[i];
+	for (byte i = 0; i < 8; i++)
+		message.m_data[i] = EEPROM[Hapcan::CoreConfig::EEPROM::DescriptionAddress + i];
 
 	OA_LOG("> Description 1");
 	Send(message);
 
 	for (byte i = 0; i < 8; i++)
-		message.m_data[i] = m_description[8+i];
+		message.m_data[i] = EEPROM[Hapcan::CoreConfig::EEPROM::DescriptionAddress + i + 8];
 
 	OA_LOG("> Description 2");
 	Send(message);

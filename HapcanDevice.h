@@ -150,7 +150,6 @@ namespace Onixarts
 				bool m_isInitialized;
 				unsigned int m_memoryAddress;
 				byte m_memoryCommand;
-				byte m_description[16];
 				unsigned long m_uptime;
 				unsigned long m_lastMillis;
 				ExecuteInstructionDelegate m_executeInstructionDelegate;
