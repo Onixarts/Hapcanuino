@@ -32,6 +32,15 @@ Hapcan::HapcanDevice hapcanDevice;
 // Callback function to be called, when received message match box criteria or direct control message is received
 void ExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message);
 
+// Callback function to be called, when received status request message
+void OnStatusRequest(byte requestType, bool isAnswer);
+
+// Information type to be send by OnStatusRequest function. Do not use value of 0 - it is reserved for SendAll
+namespace StatusRequestType
+{
+	const byte LED7Info = 0x1;
+}
+
 void setup()
 {
 	Serial.begin(115200);
@@ -45,6 +54,9 @@ void setup()
 
 	//set callback function to be called, when received message match box criteria or direct control message is received
 	hapcanDevice.SetExecuteInstructionDelegate(ExecuteInstruction);
+
+	//set callback function for status request message
+	hapcanDevice.SetStatusRequestDelegate(OnStatusRequest);
 
 	// demo example, set pin7 as output
 	pinMode(PIN7, OUTPUT);
@@ -86,10 +98,32 @@ void ExecuteInstruction(byte instruction, byte param1, byte param2, byte param3,
 	// check, if LED change instruction was executed and send message to Hapcan
 	if (ledStateChanged)
 	{
-		// send message confirmed status change of frame type 0x333 (custom)
-		Hapcan::HapcanMessage statusMessage(0x333, false);
+		// send status frame after change of LED7 to notify other Hapcan modules. 
+		// Notice second (isAnswer) parameter is set to false, because we call it directly after status change
+		OnStatusRequest(StatusRequestType::LED7Info, false);
+	}
+}
+
+//Callback function is called automaticaly after status request message received.
+// You can also call this function when status is changed to notify other Hapcan modules. See ExecuteInstruction function.
+void OnStatusRequest(byte requestType, bool isAnswer)
+{
+	// check if we should send informations about all the functions in module
+	bool sendAll = requestType == Hapcan::Message::System::StatusRequestType::SendAll;
+
+	// if we need send all info or just LED7Info status
+	if (sendAll || requestType == StatusRequestType::LED7Info)
+	{
+		// send message status of frame type 0x333 (custom). 
+		// Use isAnswer variable here, because it will be set to true when it is a response for StatusRequest message (0x109)
+		Hapcan::HapcanMessage statusMessage(0x333, isAnswer);
 		statusMessage.m_data[2] = 7;	// set up byte 3 as 7
 		statusMessage.m_data[3] = digitalRead(PIN7) == LOW ? 0x00 : 0x01; // set byte 4, 1 = LED ON, 0 = LED OFF
 		hapcanDevice.Send(statusMessage);
 	}
+
+	// Add another status messages here...
+	// if (sendAll || requestType == StatusRequestType::Your_another_defined_status)
+	//{
+	//}
 }

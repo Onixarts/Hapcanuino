@@ -87,6 +87,7 @@ HapcanDevice::HapcanDevice()
 	, m_memoryAddress(0)
 	, m_memoryCommand(Programming::Command::Undefined)
 	, m_executeInstructionDelegate(NULL)
+	, m_statusRequestDelegate(NULL)
 	, m_uptime(0UL)
 	, m_lastMillis(0UL)
 {
@@ -611,13 +612,12 @@ void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
 	Send(message);
 }
 
-// Default implementation for status Request. Override this method in derived class 
+// Default implementation for status Request. Override this method in derived class or SetStatusRequestDelegate to use global callback function
 void HapcanDevice::StatusRequestAction(HapcanMessage* message)
 {
-	HapcanMessage messageOut(message->GetFrameType(), true, m_node, m_group);
-
 	OA_LOG("> StatusRequest");
-	Send(messageOut);
+	if (m_statusRequestDelegate != NULL)
+		m_statusRequestDelegate(Hapcan::Message::System::StatusRequestType::SendAll, true);
 }
 
 // Default implementation for control module. Override this method in derived class or SetExecuteInstructionDelegate to use global callback function

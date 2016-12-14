@@ -58,6 +58,7 @@ namespace Onixarts
 			};
 
 			typedef void(*ExecuteInstructionDelegate)(byte instruction, byte param1, byte param2, byte param3, HapcanMessage& message);
+			typedef void(*StatusRequestDelegate)(byte requestType, bool isAnswer);
 
 			// this structure has to have 19 Bytes. Don't change it. It is stored in EEPROM.
 			struct BoxConfigStruct
@@ -153,6 +154,7 @@ namespace Onixarts
 				unsigned long m_uptime;
 				unsigned long m_lastMillis;
 				ExecuteInstructionDelegate m_executeInstructionDelegate;
+				StatusRequestDelegate m_statusRequestDelegate;
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
@@ -191,6 +193,7 @@ namespace Onixarts
 				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
 				
 				void SetExecuteInstructionDelegate(ExecuteInstructionDelegate eventDelegate) { m_executeInstructionDelegate = eventDelegate; }
+				void SetStatusRequestDelegate(StatusRequestDelegate eventDelegate) { m_statusRequestDelegate = eventDelegate; }
 				
 				unsigned long GetRxBufferOverflowCount();
 

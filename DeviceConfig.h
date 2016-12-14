@@ -123,6 +123,10 @@ namespace Onixarts
 					// Handled by functional firmware
 					const unsigned int StatusRequestToGroup = 0x108;
 					const unsigned int StatusRequestToNode = 0x109;
+					namespace StatusRequestType
+					{
+						const byte SendAll = 0x0;
+					}
 					const unsigned int ControlMessage = 0x10A;
 
 					//Handled by bootloader
@@ -132,7 +136,6 @@ namespace Onixarts
 					const unsigned int DescriptionRequestToNode = 0x10E;
 					const unsigned int DeviceIDRequestToGroup = 0x10F;
 
-					// Handled by functional firmware
 					const unsigned int DeviceIDRequestToNode = 0x111;
 					const unsigned int UptimeRequestToGroup = 0x112;
 					const unsigned int UptimeRequestToNode = 0x113;
@@ -151,6 +154,22 @@ namespace Onixarts
 					const unsigned int DimmerMessage = 0x306;
 					const unsigned int BlindControllerMessage = 0x307;
 					const unsigned int LedControllerMessage = 0x308;
+				}
+			}
+
+			namespace Control
+			{
+				namespace Box
+				{
+					namespace Value 
+					{
+						const byte Enable = 0xDD;
+						const byte Disable = 0xDE;
+						const byte Toggle = 0xDF;
+					}
+					const byte Instruction = 0;
+					const byte BoxX = 1;
+					const byte BoxY = 2;
 				}
 			}
 		}
