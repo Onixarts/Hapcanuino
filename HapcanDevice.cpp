@@ -563,7 +563,7 @@ void HapcanDevice::CanFirmwareIdAction(unsigned int frameType)
 // Send supply voltage information (currently not supported, returns 0V)
 void HapcanDevice::SupplyVoltageAction(unsigned int frameType)
 {
-	HapcanMessage message;(frameType, true, m_node, m_group);
+	HapcanMessage message(frameType, true, m_node, m_group);
 	message.m_data[0] = 0;
 	message.m_data[1] = 0;
 	message.m_data[2] = 0;
