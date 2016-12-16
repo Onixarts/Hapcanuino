@@ -1,4 +1,4 @@
-[[img/hapcanuino-banner.jpg|Hapcanuino]]
+![Hapcanuino](img/hapcanuino-banner.jpg)
 
 # Hapcanuino
 Hapcanuino is a library that simplifies creation of Arduino based module for [Hapcan](http://hapcan.com/) Home Automation Project.
