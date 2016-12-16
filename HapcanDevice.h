@@ -11,7 +11,7 @@
 
 #include <mcp_can.h>
 #include "Arduino.h"
-#include "DeviceConfig.h"
+#include "Consts.h"
 
 namespace Onixarts 
 { 
@@ -97,41 +97,27 @@ namespace Onixarts
 
 				bool Compare(byte byteNumber, byte messageByte)
 				{
-//					Serial.print(data[byteNumber], HEX);
-					
 					byte compareOperator = data[12 + (byteNumber / 4)];
 					compareOperator = compareOperator >> ((byteNumber % 4) * 2);
 					switch (compareOperator & 0x03)
 					{
 					case BoxOperator::Ignore:
 					{
-						//Serial.print(" xx ");
-						//Serial.println(messageByte, HEX);
 						return true;
 					}
 					case BoxOperator::Equal:
 					{
-						//Serial.print(" == ");
-						//Serial.println(messageByte, HEX);
-
 						if (data[byteNumber] == messageByte)
 							return true;
 					}
 						break;
 					case BoxOperator::Different:
 					{
-						//Serial.print(" != ");
-						//Serial.println(messageByte, HEX);
-
 						if (data[byteNumber] != messageByte)
 							return true;
 					}
 						break;
-//					default:
-						//Serial.print("error: ");
-						//Serial.println(compareOperator & 0x03);
 					}
-//					Serial.println(" FALSE ");
 					return false;
 				}
 			};

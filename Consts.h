@@ -17,6 +17,7 @@ namespace Onixarts
 	{
 		namespace Hapcan
 		{
+			// Do not modify config here. You should modify extern const in ino file
 			namespace Config
 			{
 				const byte RxFifoQueueSize = 20;				// max 255
@@ -27,31 +28,31 @@ namespace Onixarts
 					const byte HardwareType2 = 0x41;
 					const byte HardwareVersion = 1;				// 3 for Hapcan's UNIV 3, 1 = Arduino Uno 
 
-					const byte DeviceId1 = 0x12;				// unique device identifier 1, change it
-					const byte DeviceId2 = 0x34;				// unique device identifier 2, change it
+					extern const byte DeviceId1;// = 0x12;				//* unique device identifier 1, change it
+					extern const byte DeviceId2;// = 0x34;				//* unique device identifier 2, change it
 				}
 
 				namespace Node
 				{
-					const byte SerialNumber0 = 0x01;			// ID0 serial number MSB
-					const byte SerialNumber1 = 0x02;
-					const byte SerialNumber2 = 0x20;			// this is also a default node
-					const byte SerialNumber3 = 0x09;			// this is also a default group
+					extern const byte SerialNumber0;// = 0x01;			// ID0 serial number MSB
+					extern const byte SerialNumber1;// = 0x02;
+					extern const byte SerialNumber2;// = 0x20;			// this is also a default node
+					extern const byte SerialNumber3;// = 0x09;			// this is also a default group
 				}
 
 				namespace Firmware
 				{
-					const byte ApplicationType = 50;			// application (hardware) type (such as button, relay, dimmer) 1-10 Hapcan modules, 102 - ethernet, 50 - default Hapcanuino empty device
-					const byte ApplicationVersion = 0;			// application (hardware) version, 0 - default Hapcanuino empty device
-					const byte FirmwareVersion = 0;				// firmware version
-					const int FirmwareRevision = 1;				// firmware revision
+					extern const byte ApplicationType;// = 50;			//* application (hardware) type (such as button, relay, dimmer) 1-10 Hapcan modules, 102 - ethernet, 50 - default Hapcanuino empty device
+					extern const byte ApplicationVersion;// = 0;			//* application (hardware) version, 0 - default Hapcanuino empty device
+					extern const byte FirmwareVersion;// = 0;				//* firmware version
+					extern const int FirmwareRevision;// = 0;				//* firmware revision
 				}
 
 				namespace MCP
 				{
-					const byte InterruptPin = 2;				// CAN module interrupt is connected to this pin (see https://www.arduino.cc/en/Reference/AttachInterrupt)
-					const byte CSPin = 10;						// SPI CS pin
-					const byte OscillatorFrequency = MCP_8MHZ;	// MCP oscillator frequency on MCP CAN module (or MCP_16MHz)
+					extern const byte InterruptPin;// = 2;				//* CAN module interrupt is connected to this pin (see https://www.arduino.cc/en/Reference/AttachInterrupt)
+					extern const byte CSPin;// = 10;						//* SPI CS pin
+					extern const byte OscillatorFrequency;// = MCP_8MHZ;	//* MCP oscillator frequency on MCP CAN module (or MCP_16MHz)
 				}
 
 				namespace BootLoader
@@ -95,10 +96,6 @@ namespace Onixarts
 			
 			namespace Message
 			{
-				//const byte SystemMessage0x00Flag = 0x00;
-
-				//const byte SystemMessage0x10Flag = 0x10;
-				//const byte SystemMessage0x11Flag = 0x11;
 				const byte NormalMessageCategory = 0x30;
 
 				namespace System

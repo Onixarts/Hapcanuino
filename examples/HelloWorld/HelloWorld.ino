@@ -29,6 +29,25 @@ using namespace Onixarts::HomeAutomationCore;
 // HapcanDevice class declaration
 Hapcan::HapcanDevice hapcanDevice;
 
+// Configure Your Hapcan device here
+const byte Hapcan::Config::MCP::InterruptPin = 2;				// CAN module interrupt is connected to this pin (see https://www.arduino.cc/en/Reference/AttachInterrupt)
+const byte Hapcan::Config::MCP::CSPin = 10;						// SPI CS pin
+const byte Hapcan::Config::MCP::OscillatorFrequency = MCP_8MHZ;	// MCP oscillator frequency on MCP CAN module (or MCP_16MHz)
+
+const byte Hapcan::Config::Hardware::DeviceId1 = 0x12;			// unique device identifier 1, change it
+const byte Hapcan::Config::Hardware::DeviceId2 = 0x34;			// unique device identifier 2, change it
+
+const byte Hapcan::Config::Node::SerialNumber0 = 9;				// ID0 serial number MSB
+const byte Hapcan::Config::Node::SerialNumber1 = 9;
+const byte Hapcan::Config::Node::SerialNumber2 = 32;			// this is also a default node
+const byte Hapcan::Config::Node::SerialNumber3 = 9;				// this is also a default group
+
+const byte Hapcan::Config::Firmware::ApplicationType = 51;		// application (hardware) type (such as button, relay, dimmer) 1-10 Hapcan modules, 102 - ethernet, 51 - Hapcanuino Hellow World 1 LED device
+const byte Hapcan::Config::Firmware::ApplicationVersion = 0;	// application (hardware) version, change it with device hardware changes
+const byte Hapcan::Config::Firmware::FirmwareVersion = 1;		// firmware version
+const int  Hapcan::Config::Firmware::FirmwareRevision = 0;		// firmware revision
+// Configuration end
+
 // Callback function to be called, when received message match box criteria or direct control message is received
 void ExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message);
 
