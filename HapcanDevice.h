@@ -21,14 +21,6 @@ namespace Onixarts
 		{
 			class HapcanMessage
 			{
-				public:
-					unsigned long m_id;
-					byte m_data[8];
-
-					HapcanMessage();
-					HapcanMessage(unsigned long id, byte* buffer);
-					HapcanMessage(unsigned int frameType, bool isAnswer, byte node, byte group);
-					HapcanMessage(unsigned int frameType, bool isAnswer);
 					void InitMessageId(unsigned int frameType, bool isAnswer, byte node, byte group)
 					{
 						m_id = 0;
@@ -38,6 +30,15 @@ namespace Onixarts
 						m_id |= (unsigned long)node << 8;
 						m_id |= group;
 					}
+				public:
+					unsigned long m_id;
+					byte m_data[8];
+
+					HapcanMessage();
+					HapcanMessage(unsigned long id, byte* buffer);
+					HapcanMessage(unsigned int frameType, bool isAnswer, byte node, byte group);
+					HapcanMessage(unsigned int frameType, bool isAnswer);
+					
 
 					// Fills node and group number if needed
 					void Prepare(byte node, byte group)
@@ -176,6 +177,8 @@ namespace Onixarts
 				void Send(HapcanMessage & message);
 
 				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
+				bool GetConfigByte(byte configBank, byte byteNumber, byte& value);
+				bool SetConfigByte(byte configBank, byte byteNumber, byte value);
 				
 				void SetExecuteInstructionDelegate(ExecuteInstructionDelegate eventDelegate) { m_executeInstructionDelegate = eventDelegate; }
 				void SetStatusRequestDelegate(StatusRequestDelegate eventDelegate) { m_statusRequestDelegate = eventDelegate; }

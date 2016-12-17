@@ -422,6 +422,62 @@ void HapcanDevice::Send(HapcanMessage& message)
 	CAN.sendMsgBuf(message.m_id, 1, 8, message.m_data);
 }
 
+// Returns byte from one of the EEPROM's config bank
+bool HapcanDevice::GetConfigByte(byte configBank, byte byteNumber, byte& value)
+{
+	switch (configBank)
+	{
+	case Hapcan::ConfigBank::NodeConfig:
+		if (byteNumber > Hapcan::ConfigBank::NodeConfigCapacity)
+			return false;
+		value = EEPROM[Hapcan::CoreConfig::EEPROM::NodeConfigAddress + byteNumber];
+		break;
+	
+	case Hapcan::ConfigBank::ExtendedConfig:
+		if (byteNumber > Hapcan::ConfigBank::ExtendedConfigCapacity)
+			return false;
+		value = EEPROM[Hapcan::CoreConfig::EEPROM::ExtendedConfigAddress + byteNumber];
+		break;
+	
+	case Hapcan::ConfigBank::Storage:
+		if (byteNumber > Hapcan::ConfigBank::StorageAddressCapacity)
+			return false;
+		value = EEPROM[Hapcan::CoreConfig::EEPROM::StorageAddress + byteNumber];
+		break;
+	default:
+		return false;
+	}
+	return true;
+}
+
+// Set byte in one of the EEPROM's config bank.
+bool HapcanDevice::SetConfigByte(byte configBank, byte byteNumber, byte value)
+{
+	switch (configBank)
+	{
+	case Hapcan::ConfigBank::NodeConfig:
+		if (byteNumber > Hapcan::ConfigBank::NodeConfigCapacity)
+			return false;
+		EEPROM[Hapcan::CoreConfig::EEPROM::NodeConfigAddress + byteNumber] = value;
+		break;
+
+	case Hapcan::ConfigBank::ExtendedConfig:
+		if (byteNumber > Hapcan::ConfigBank::ExtendedConfigCapacity)
+			return false;
+		EEPROM[Hapcan::CoreConfig::EEPROM::ExtendedConfigAddress + byteNumber] = value;
+		break;
+
+	case Hapcan::ConfigBank::Storage:
+		if (byteNumber > Hapcan::ConfigBank::StorageAddressCapacity)
+			return false;
+		EEPROM[Hapcan::CoreConfig::EEPROM::StorageAddress + byteNumber] = value;
+		break;
+	default:
+		return false;
+	}
+	return true;
+}
+
 //--------------------------------------------------------------------------------------------------------------------
 //-- BOOTLOADER ACTIONS ----------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------

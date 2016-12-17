@@ -62,6 +62,18 @@ namespace Onixarts
 				}
 			}
 
+			namespace ConfigBank
+			{
+				const byte NodeConfig = 1;
+				const byte NodeConfigCapacity = 24;
+
+				const byte ExtendedConfig = 2;
+				const byte ExtendedConfigCapacity = 48;
+
+				const byte Storage = 3;
+				const byte StorageAddressCapacity = 287;
+			}
+
 			namespace Programming
 			{
 				namespace Command
@@ -81,9 +93,12 @@ namespace Onixarts
 
 				namespace EEPROM
 				{
+					const byte NodeConfigAddress = 0x08;
 					const byte DescriptionAddress = 0x30;
 					const byte BoxEnableAddress = 0x40;
+					const byte ExtendedConfigAddress = 0x50;
 					const byte BoxConfigAddress = 0x80;
+					const int StorageAddress = 0x02e0;
 				}
 			}
 			
