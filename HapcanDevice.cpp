@@ -117,7 +117,7 @@ void HapcanDevice::ReadEEPROMConfig()
 	// save initial node value to EEPROM if not set
 	if (m_node == 0xFF)
 	{
-		EEPROM[0x26] = Config::Node::SerialNumber2;
+		EEPROM.update(0x26, Config::Node::SerialNumber2);
 		m_node = Config::Node::SerialNumber2;
 	}
 
@@ -126,7 +126,7 @@ void HapcanDevice::ReadEEPROMConfig()
 	// save initial group value to EEPROM if not set
 	if (m_group == 0xFF)
 	{
-		EEPROM[0x27] = Config::Node::SerialNumber3;
+		EEPROM.update(0x27, Config::Node::SerialNumber3);
 		m_node = Config::Node::SerialNumber3;
 	}
 }
@@ -458,19 +458,19 @@ bool HapcanDevice::SetConfigByte(byte configBank, byte byteNumber, byte value)
 	case Hapcan::ConfigBank::NodeConfig:
 		if (byteNumber > Hapcan::ConfigBank::NodeConfigCapacity)
 			return false;
-		EEPROM[Hapcan::CoreConfig::EEPROM::NodeConfigAddress + byteNumber] = value;
+		EEPROM.update(Hapcan::CoreConfig::EEPROM::NodeConfigAddress + byteNumber, value);
 		break;
 
 	case Hapcan::ConfigBank::ExtendedConfig:
 		if (byteNumber > Hapcan::ConfigBank::ExtendedConfigCapacity)
 			return false;
-		EEPROM[Hapcan::CoreConfig::EEPROM::ExtendedConfigAddress + byteNumber] = value;
+		EEPROM.update(Hapcan::CoreConfig::EEPROM::ExtendedConfigAddress + byteNumber, value);
 		break;
 
 	case Hapcan::ConfigBank::Storage:
 		if (byteNumber > Hapcan::ConfigBank::StorageAddressCapacity)
 			return false;
-		EEPROM[Hapcan::CoreConfig::EEPROM::StorageAddress + byteNumber] = value;
+		EEPROM.update(Hapcan::CoreConfig::EEPROM::StorageAddress + byteNumber, value);
 		break;
 	default:
 		return false;
@@ -648,8 +648,8 @@ void HapcanDevice::NodeDescriptionAction(unsigned int frameType)
 // Reset node and group to default values
 void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
 {
-	EEPROM[0x26] = Config::Node::SerialNumber2;
-	EEPROM[0x27] = Config::Node::SerialNumber3;
+	EEPROM.update(0x26, Config::Node::SerialNumber2);
+	EEPROM.update(0x27, Config::Node::SerialNumber3);
 
 	m_node = Config::Node::SerialNumber2;
 	m_group = Config::Node::SerialNumber3;
