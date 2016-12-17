@@ -26,7 +26,21 @@ namespace Onixarts
 				{
 					const byte HardwareType1 = 0x4f;			//hardware type (0x3000 = UNIV 3, 0x4F41 = OA Hapcanuino)
 					const byte HardwareType2 = 0x41;
-					const byte HardwareVersion = 1;				// 3 for Hapcan's UNIV 3, 1 = Arduino Uno 
+#if defined(ARDUINO_AVR_UNO)
+					const byte HardwareVersion = 1;				
+#elif defined(ARDUINO_AVR_MEGA2560)
+					const byte HardwareVersion = 2;				
+#elif defined(ARDUINO_AVR_MICRO)
+					const byte HardwareVersion = 3;
+#elif defined(ARDUINO_AVR_MINI)
+					const byte HardwareVersion = 4;
+#elif defined(ARDUINO_AVR_NANO)
+					const byte HardwareVersion = 5;
+#else
+					const byte HardwareVersion = 0;				// uknown Arduino board
+#endif 
+
+					//const byte HardwareVersion = 1;				// 3 for Hapcan's UNIV 3, 1 = Arduino Uno 
 
 					extern const byte DeviceId1;// = 0x12;				//* unique device identifier 1, change it
 					extern const byte DeviceId2;// = 0x34;				//* unique device identifier 2, change it
