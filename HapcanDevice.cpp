@@ -104,6 +104,8 @@ void HapcanDevice::Begin()
 	pinMode(Config::MCP::InterruptPin, INPUT);
 	attachInterrupt(digitalPinToInterrupt(Config::MCP::InterruptPin), OnCanReceivedDispatcher, FALLING);
 
+	OnInit();
+
 	ReadEEPROMConfig();
 
 	m_isInitialized = true;
@@ -129,6 +131,8 @@ void HapcanDevice::ReadEEPROMConfig()
 		EEPROM.update(0x27, Config::Node::SerialNumber3);
 		m_node = Config::Node::SerialNumber3;
 	}
+
+	OnReadEEPROMConfig();
 }
 
 // Add message to RX FIFO buffer, with overflow check
@@ -199,6 +203,8 @@ void HapcanDevice::Update()
 	ProcessRxBuffer();
 	
 	UpdateUptime();
+
+	OnUpdate();
 }
 
 // Checks if there is any new message to process and perform processing in this case
@@ -298,6 +304,9 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 					OA_LOG_LINE((boxBit + i * 8)+1);
 					OA_LOG_LINE(" instr: ");
 					OA_LOG(boxConfig.data[15]);
+
+					OnExecuteInstruction(boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18], *message);
+
 					if (m_executeInstructionDelegate != NULL)
 						m_executeInstructionDelegate(boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18], *message);
 				}
@@ -660,18 +669,24 @@ void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
 	Send(message);
 }
 
-// Default implementation for status Request. Override this method in derived class or SetStatusRequestDelegate to use global callback function
+// Status request
 void HapcanDevice::StatusRequestAction(HapcanMessage* message)
 {
 	OA_LOG("> StatusRequest");
+	
+	OnStatusRequest(Hapcan::Message::System::StatusRequestType::SendAll, true);
+
 	if (m_statusRequestDelegate != NULL)
 		m_statusRequestDelegate(Hapcan::Message::System::StatusRequestType::SendAll, true);
 }
 
-// Default implementation for control module. Override this method in derived class or SetExecuteInstructionDelegate to use global callback function
+// Control action
 void HapcanDevice::ControlAction(HapcanMessage* message)
 {
 	OA_LOG("> Direct Control");
+	
+	OnExecuteInstruction(message->m_data[0], message->m_data[1], message->m_data[4], message->m_data[5], *message);
+
 	if (m_executeInstructionDelegate != NULL)
 		m_executeInstructionDelegate(message->m_data[0], message->m_data[1], message->m_data[4], message->m_data[5], *message);
 }

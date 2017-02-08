@@ -19,6 +19,22 @@ namespace Onixarts
 	{
 		namespace Hapcan 
 		{
+			class Tools
+			{
+			public:
+				static unsigned long Byte2Time(byte time)
+				{
+					if (time < 60)
+						return 1000 * (unsigned long)time;
+					else if (time < 108)
+						return 1000 * (60 + ((unsigned long)time - 60) * 5);
+					else if (time < 163)
+						return 1000 * (300 + ((unsigned long)time - 108) * 60);
+					else
+						return 1000 * (3600 + ((unsigned long)time - 163) * 900);
+				}
+			};
+
 			class HapcanMessage
 			{
 					void InitMessageId(unsigned int frameType, bool isAnswer, byte node, byte group)
@@ -166,11 +182,18 @@ namespace Onixarts
 				void SetDefaultNodeAndGroupAction(unsigned int frameType);
 				void DeviceIDAction(unsigned int frameType);
 				void UptimeAction(unsigned int frameType);
+				void StatusRequestAction(HapcanMessage* message);
+				void ControlAction(HapcanMessage* message);
 
-				virtual void StatusRequestAction(HapcanMessage* message);
-				virtual void ControlAction(HapcanMessage* message);
+				virtual void OnInit() {};
+				virtual void OnReadEEPROMConfig() {};
+				virtual void OnUpdate() {};
+				virtual void OnExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message) {};
+				virtual void OnStatusRequest(byte requestType, bool isAnswer) {};
+
 			public:
 				HapcanDevice();
+
 
 				void Begin(); 
 				void Update();
@@ -189,6 +212,69 @@ namespace Onixarts
 				void OnCanReceived();
 				static void OnCanReceivedDispatcher();
 			};
+
+			class SubModuleBase
+			{
+			protected:
+				byte m_instructionShift;
+				virtual bool Execute(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message) = 0;
+			public:
+				SubModuleBase(byte instructionShift) : m_instructionShift(instructionShift) {};
+				virtual void Init() = 0;
+				virtual void Update() = 0;
+				virtual void SendStatus(bool isAnswer) = 0;
+				bool ExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message)
+				{
+					return Execute(instruction - m_instructionShift, param1, param2, param3, message);
+				}
+			};
+
+			template <byte SubmodulesCount = 0>
+			class HapcanDeviceSubModuleHost : public HapcanDevice
+			{
+			protected:
+				SubModuleBase* m_subModules[SubmodulesCount];
+
+				virtual void OnInit()
+				{
+					for (byte i = 0; i < SubmodulesCount; i++)
+					{
+						m_subModules[i]->Init();
+					}
+				}
+
+				virtual void OnUpdate()
+				{
+					for (byte i = 0; i < SubmodulesCount; i++)
+					{
+						m_subModules[i]->Update();
+					}
+				}
+
+				virtual void OnStatusRequest(byte requestType, bool isAnswer)
+				{
+					for (byte i = 0; i < SubmodulesCount; i++)
+					{
+						m_subModules[i]->SendStatus(isAnswer);
+					}
+				}
+				
+				virtual void OnExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message)
+				{
+					for (byte i = 0; i < SubmodulesCount; i++)
+					{
+						m_subModules[i]->ExecuteInstruction(instruction, param1, param2, param3, message);
+					}
+				}
+
+			public:
+				HapcanDeviceSubModuleHost()
+				{
+					if( SubmodulesCount > 0 )
+						memset(m_subModules, 0, sizeof(m_subModules));
+				};
+			};
+			
 		}
 	}
 }
