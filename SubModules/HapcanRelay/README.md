@@ -54,12 +54,12 @@ Submodule can be controlled directly by sending control frame `0x10A` from PC or
 
 ### Control instruction
 
-Instruction|INSTR1|INSTR2|INSTR3|INSTR4|INSTR5|INSTR6|INSTR7|INSTR8|Description
----|---|---|---|---|---|---|---|---|---
-Turn OFF output|0x00|CHANNEL|TIMER|0xXX|0xXX|0xXX|0xXX|0xXX|It will turn OFF the output if CHANNEL match channel assigned to this submodule
-Turn ON output|0x01|CHANNEL|TIMER|0xXX|0xXX|0xXX|0xXX|0xXX|It will turn ON the output if CHANNEL match channel assigned to this submodule
-Toggle output|0x02|CHANNEL|TIMER|0xXX|0xXX|0xXX|0xXX|0xXX|It will turn Toggle the output if CHANNEL match channel assigned to this submodule
-Blink|0x05|CHANNEL|TIMER|COUNT|DURATION|0xXX|0xXX|0xXX|It will blink the output if CHANNEL match channel assigned to this submodule
+Instruction|INSTR1|INSTR2|INSTR3|INSTR4|INSTR5|INSTR6|Description
+---|---|---|---|---|---|---|---
+Turn OFF output|0x00|CHANNEL|TIMER||||It will turn OFF the output if CHANNEL match channel assigned to this submodule
+Turn ON output|0x01|CHANNEL|TIMER||||It will turn ON the output if CHANNEL match channel assigned to this submodule
+Toggle output|0x02|CHANNEL|TIMER||||It will turn Toggle the output if CHANNEL match channel assigned to this submodule
+Blink|0x05|CHANNEL|TIMER|COUNT|DURATION||It will blink the output if CHANNEL match channel assigned to this submodule
 
 **CHANNEL** is a flag type, so sending 0x03 = 0000 0011B will match channels 1 and 2. In this case You can control up to 8 channels sending one command.
 
