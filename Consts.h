@@ -21,6 +21,7 @@ namespace Onixarts
 			namespace Config
 			{
 				const byte RxFifoQueueSize = 20;				// max 255
+				const byte TxFifoQueueSize = 20;
 				
 				namespace Hardware
 				{

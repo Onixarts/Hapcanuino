@@ -143,9 +143,13 @@ namespace Onixarts
 			{
 				MCP_CAN CAN;
 				volatile byte m_RxBufferIndex;
+				byte m_TxBufferIndex;
 				byte m_RxBufferReadIndex;
+				byte m_TxBufferReadIndex;
 				HapcanMessage m_RxBuffer[Config::RxFifoQueueSize];
+				HapcanMessage m_TxBuffer[Config::TxFifoQueueSize];
 				unsigned int m_rxBufferOverflowCount;
+				unsigned int m_txBufferOverflowCount;
 				byte m_group;
 				byte m_node;
 				bool m_receiveAnswerMessages;
@@ -159,11 +163,14 @@ namespace Onixarts
 				StatusRequestDelegate m_statusRequestDelegate;
 			protected:
 				void AddMessageToRxBuffer(HapcanMessage& message);
+				void AddMessageToTxBuffer(HapcanMessage& message);
 				bool ProcessRxBuffer();
+				bool ProcessTxBuffer();
 				void UpdateUptime();
 				bool ProcessSystemMessage(HapcanMessage * message);
 				bool ProcessNormalMessage(HapcanMessage * message);
 				bool ReadRxBuffer(HapcanMessage** message);
+				bool ReadTxBuffer(HapcanMessage ** message);
 				bool MatchGroup(HapcanMessage* message);
 				bool MatchNode(HapcanMessage* message);
 				void ProcessProgrammingMessage(HapcanMessage* message);
@@ -197,7 +204,7 @@ namespace Onixarts
 
 				void Begin(); 
 				void Update();
-				void Send(HapcanMessage & message);
+				void Send(HapcanMessage & message, bool sendImmediately = false);
 
 				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
 				bool GetConfigByte(byte configBank, byte byteNumber, byte& value);

@@ -77,8 +77,11 @@ void HapcanMessage::PrintToSerial()
 HapcanDevice::HapcanDevice()
 	:CAN(Config::MCP::CSPin)
 	, m_RxBufferIndex(0)
+	, m_TxBufferIndex(0)
 	, m_RxBufferReadIndex(0)
+	, m_TxBufferReadIndex(0)
 	, m_rxBufferOverflowCount(0)
+	, m_txBufferOverflowCount(0)
 	, m_node(Hapcan::Config::Node::SerialNumber2)
 	, m_group(Hapcan::Config::Node::SerialNumber3)
 	, m_receiveAnswerMessages(false)
@@ -147,8 +150,25 @@ void HapcanDevice::AddMessageToRxBuffer(HapcanMessage& message)
 	if (m_RxBufferIndex == m_RxBufferReadIndex)
 	{
 		m_rxBufferOverflowCount++;
-		OA_LOG_LINE("RX Buffer overflow. Count = ");
-		OA_LOG(m_rxBufferOverflowCount);
+		//OA_LOG_LINE("RX Buffer overflow. Count = ");
+		//OA_LOG(m_rxBufferOverflowCount);
+	}
+}
+
+// Add message to TX FIFO buffer, with overflow check
+void HapcanDevice::AddMessageToTxBuffer(HapcanMessage& message)
+{
+	m_TxBuffer[m_TxBufferIndex] = message;
+	m_TxBufferIndex++;
+	if (m_TxBufferIndex >= Config::TxFifoQueueSize)
+		m_TxBufferIndex = 0;
+
+	// tx buffer overflow check
+	if (m_TxBufferIndex == m_TxBufferReadIndex)
+	{
+		m_txBufferOverflowCount++;
+		OA_LOG_LINE("TX Buffer overflow. Count = ");
+		OA_LOG(m_txBufferOverflowCount);
 	}
 }
 
@@ -169,6 +189,22 @@ bool HapcanDevice::ReadRxBuffer(HapcanMessage ** message)
 	return true;
 }
 
+// Read one message from TX FIFO buffer.
+// Returns true if there is any message to read
+bool HapcanDevice::ReadTxBuffer(HapcanMessage ** message)
+{
+	// no messages waiting
+	if (m_TxBufferReadIndex == m_TxBufferIndex)
+		return false;
+
+	*message = &m_TxBuffer[m_TxBufferReadIndex];
+
+	m_TxBufferReadIndex++;
+	if (m_TxBufferReadIndex >= Config::TxFifoQueueSize)
+		m_TxBufferReadIndex = 0;
+
+	return true;
+}
 
 // static CAN MCP interupt callback function
 void HapcanDevice::OnCanReceivedDispatcher()
@@ -205,6 +241,8 @@ void HapcanDevice::Update()
 	UpdateUptime();
 
 	OnUpdate();
+
+	ProcessTxBuffer();
 }
 
 // Checks if there is any new message to process and perform processing in this case
@@ -229,6 +267,19 @@ bool HapcanDevice::ProcessRxBuffer()
 		else
 			ProcessNormalMessage(message);
 
+		return true;
+	}
+	return false;
+}
+
+// Checks if there is any message to send
+// Returns true if message processed
+bool HapcanDevice::ProcessTxBuffer()
+{
+	Hapcan::HapcanMessage* message = NULL;
+	if (ReadTxBuffer(&message))
+	{
+		CAN.sendMsgBuf(message->m_id, 1, 8, message->m_data);
 		return true;
 	}
 	return false;
@@ -424,11 +475,15 @@ unsigned long HapcanDevice::GetRxBufferOverflowCount()
 }
 
 // Send HapcanMessage to the CAN BUS
-void HapcanDevice::Send(HapcanMessage& message)
+void HapcanDevice::Send(HapcanMessage& message, bool sendImmediately)
 {
 	message.Prepare(m_node, m_group);
 	message.PrintToSerial();
-	CAN.sendMsgBuf(message.m_id, 1, 8, message.m_data);
+
+	if (sendImmediately)
+		CAN.sendMsgBuf(message.m_id, 1, 8, message.m_data);
+	else
+		AddMessageToTxBuffer(message);
 }
 
 // Returns byte from one of the EEPROM's config bank
