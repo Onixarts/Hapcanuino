@@ -1,6 +1,6 @@
 #pragma once
 
-// Send debug info to Serial port. Comment line below to disable Serial notifications and reduce FLASH and SRAM usage
+// Send debug info to Serial port. Comment line below to disable Serial notifications and reduce FLASH usage
 #define OA_DEBUG 1	
 
 #ifdef OA_DEBUG

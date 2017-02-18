@@ -46,29 +46,29 @@ void HapcanMessage::PrintToSerial()
 #ifdef OA_DEBUG
 	//Serial.print("Raw Frame type: ");
 	//Serial.println(m_id, HEX);
-	Serial.print("Frame: 0x");
+	Serial.print(F("Frame: 0x"));
 
 	unsigned int temp1 = GetFrameType();
 	if (temp1 < 0x100)
-		Serial.print("0");
+		Serial.print(F("0"));
 	Serial.print(temp1, HEX);
-	Serial.print(IsAnswer() ? " A" : "  ");
+	Serial.print(IsAnswer() ? F(" A") : F("  "));
 
-	Serial.print("\tNode (");
+	Serial.print(F("\tNode ("));
 	Serial.print(GetNode());
-	Serial.print(",");
+	Serial.print(F(","));
 	Serial.print(GetGroup());
-	Serial.print(")");
+	Serial.print(F(")"));
 
-	Serial.print("\t\tdata: ");
+	Serial.print(F("\t\tdata: "));
 	for (int i = 0; i<8; i++)                // Print each byte of the data
 	{
 		if (m_data[i] < 0x10)                     // If data byte is less than 0x10, add a leading zero
 		{
-			Serial.print("0");
+			Serial.print(F("0"));
 		}
 		Serial.print(m_data[i], HEX);
-		Serial.print(" ");
+		Serial.print(F(" "));
 	}
 	Serial.println();
 #endif
@@ -167,7 +167,7 @@ void HapcanDevice::AddMessageToTxBuffer(HapcanMessage& message)
 	if (m_TxBufferIndex == m_TxBufferReadIndex)
 	{
 		m_txBufferOverflowCount++;
-		OA_LOG_LINE("TX Buffer overflow. Count = ");
+		OA_LOG_LINE(F("TX Buffer overflow. Count = "));
 		OA_LOG(m_txBufferOverflowCount);
 	}
 }
@@ -351,9 +351,9 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 				EEPROM.get(CoreConfig::EEPROM::BoxConfigAddress + sizeof(BoxConfigStruct)*boxBit + i*8*sizeof(BoxConfigStruct), boxConfig);
 				if (boxConfig.Accept(message))
 				{
-					OA_LOG_LINE("> Accepted box: ");
+					OA_LOG_LINE(F("> Accepted box: "));
 					OA_LOG_LINE((boxBit + i * 8)+1);
-					OA_LOG_LINE(" instr: ");
+					OA_LOG_LINE(F(" instr: "));
 					OA_LOG(boxConfig.data[15]);
 
 					OnExecuteInstruction(boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18], *message);
@@ -555,7 +555,7 @@ void HapcanDevice::EnterProgrammingModeAction(unsigned int frameType)
 	message.m_data[2] = Config::BootLoader::BootloaderVersion;
 	message.m_data[3] = Config::BootLoader::BootloaderRevision;
 
-	OA_LOG("> Entering programming mode");
+	OA_LOG(F("> Entering programming mode"));
 	Send(message);
 }
 
@@ -580,7 +580,7 @@ void HapcanDevice::AddressFrameAction(HapcanMessage* inputMessage)
 
 	inputMessage->SetAnswer();
 
-	OA_LOG("> Address frame");
+	OA_LOG(F("> Address frame"));
 	Send(*inputMessage);
 }
 
@@ -607,7 +607,7 @@ void HapcanDevice::DataFrameAction(HapcanMessage* inputMessage)
 
 	inputMessage->SetAnswer();
 
-	OA_LOG("> Data frame");
+	OA_LOG(F("> Data frame"));
 	Send(*inputMessage);
 }
 
@@ -618,7 +618,7 @@ void HapcanDevice::ErrorFrameAction(HapcanMessage* inputMessage)
 	message.m_data[2] = Config::BootLoader::BootloaderVersion;
 	message.m_data[3] = Config::BootLoader::BootloaderRevision;
 
-	OA_LOG("> Error Frame");
+	OA_LOG(F("> Error Frame"));
 	Send(message);
 }
 
@@ -629,7 +629,7 @@ void HapcanDevice::ProgrammingModeAction(unsigned int frameType)
 	{
 	case Message::System::ExitAllFromBootloaderProgrammingMode:
 	case Message::System::ExitOneNodeFromBootloaderProgrammingMode:
-		OA_LOG("> Exiting programming mode");
+		OA_LOG(F("> Exiting programming mode"));
 		if (m_isInProgrammingMode)
 			RebootAction();
 		break;
@@ -640,7 +640,7 @@ void HapcanDevice::ProgrammingModeAction(unsigned int frameType)
 // Reboots the device. No Message is sent to CAN BUS.
 void HapcanDevice::RebootAction()
 {
-	OA_LOG("> Rebooting...");
+	OA_LOG(F("> Rebooting..."));
 	wdt_enable(WDTO_15MS);
 	_delay_ms(20);
 }
@@ -658,7 +658,7 @@ void HapcanDevice::CanNodeIdAction(unsigned int frameType)
 	message.m_data[6] = Config::Node::SerialNumber2;
 	message.m_data[7] = Config::Node::SerialNumber3;
 	
-	OA_LOG("> CanNodeId");
+	OA_LOG(F("> CanNodeId"));
 	Send(message);
 }
 
@@ -676,7 +676,7 @@ void HapcanDevice::CanFirmwareIdAction(unsigned int frameType)
 	message.m_data[6] = Config::BootLoader::BootloaderVersion;
 	message.m_data[7] = Config::BootLoader::BootloaderRevision;
 	
-	OA_LOG("> CanFirmwareId");
+	OA_LOG(F("> CanFirmwareId"));
 	Send(message);
 }
 
@@ -689,7 +689,7 @@ void HapcanDevice::SupplyVoltageAction(unsigned int frameType)
 	message.m_data[2] = 0;
 	message.m_data[3] = 0;
 
-	OA_LOG("> SupplyVoltage");
+	OA_LOG(F("> SupplyVoltage"));
 	Send(message);
 }
 
@@ -699,13 +699,13 @@ void HapcanDevice::NodeDescriptionAction(unsigned int frameType)
 	for (byte i = 0; i < 8; i++)
 		message.m_data[i] = EEPROM[Hapcan::CoreConfig::EEPROM::DescriptionAddress + i];
 
-	OA_LOG("> Description 1");
+	OA_LOG(F("> Description 1"));
 	Send(message);
 
 	for (byte i = 0; i < 8; i++)
 		message.m_data[i] = EEPROM[Hapcan::CoreConfig::EEPROM::DescriptionAddress + i + 8];
 
-	OA_LOG("> Description 2");
+	OA_LOG(F("> Description 2"));
 	Send(message);
 }
 
@@ -720,14 +720,14 @@ void HapcanDevice::SetDefaultNodeAndGroupAction(unsigned int frameType)
 
 	HapcanMessage message(frameType, true, m_node, m_group);
 
-	OA_LOG("> SetDefaultNodeAndGroup");
+	OA_LOG(F("> SetDefaultNodeAndGroup"));
 	Send(message);
 }
 
 // Status request
 void HapcanDevice::StatusRequestAction(HapcanMessage* message)
 {
-	OA_LOG("> StatusRequest");
+	OA_LOG(F("> StatusRequest"));
 	
 	OnStatusRequest(Hapcan::Message::System::StatusRequestType::SendAll, true);
 
@@ -738,7 +738,7 @@ void HapcanDevice::StatusRequestAction(HapcanMessage* message)
 // Control action
 void HapcanDevice::ControlAction(HapcanMessage* message)
 {
-	OA_LOG("> Direct Control");
+	OA_LOG(F("> Direct Control"));
 	
 	OnExecuteInstruction(message->m_data[0], message->m_data[1], message->m_data[4], message->m_data[5], *message);
 
@@ -753,7 +753,7 @@ void HapcanDevice::DeviceIDAction(unsigned int frameType)
 	message.m_data[0] = Config::Hardware::DeviceId1;
 	message.m_data[1] = Config::Hardware::DeviceId2;
 
-	OA_LOG("> DeviceID");
+	OA_LOG(F("> DeviceID"));
 	Send(message);
 }
 
@@ -766,6 +766,6 @@ void HapcanDevice::UptimeAction(unsigned int frameType)
 	message.m_data[6] = (byte)(m_uptime >> 8);
 	message.m_data[7] = (byte)m_uptime;
 	
-	OA_LOG("> Uptime");
+	OA_LOG(F("> Uptime"));
 	Send(message);
 }
