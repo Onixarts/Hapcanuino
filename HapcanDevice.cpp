@@ -84,6 +84,7 @@ HapcanDevice::HapcanDevice()
 	, m_txBufferOverflowCount(0)
 	, m_node(Hapcan::Config::Node::SerialNumber2)
 	, m_group(Hapcan::Config::Node::SerialNumber3)
+	, m_processOwnMessages(false)
 	, m_receiveAnswerMessages(false)
 	, m_isInProgrammingMode(false)
 	, m_isInitialized(false)
@@ -280,6 +281,8 @@ bool HapcanDevice::ProcessTxBuffer()
 	if (ReadTxBuffer(&message))
 	{
 		CAN.sendMsgBuf(message->m_id, 1, 8, message->m_data);
+		if (m_processOwnMessages && !message->IsAnswer())
+			AddMessageToRxBuffer(*message);
 		return true;
 	}
 	return false;
@@ -481,7 +484,11 @@ void HapcanDevice::Send(HapcanMessage& message, bool sendImmediately)
 	message.PrintToSerial();
 
 	if (sendImmediately)
+	{
 		CAN.sendMsgBuf(message.m_id, 1, 8, message.m_data);
+		if (m_processOwnMessages && !message.IsAnswer())
+			AddMessageToRxBuffer(message);
+	}
 	else
 		AddMessageToTxBuffer(message);
 }

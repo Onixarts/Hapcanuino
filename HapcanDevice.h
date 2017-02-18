@@ -152,6 +152,7 @@ namespace Onixarts
 				unsigned int m_txBufferOverflowCount;
 				byte m_group;
 				byte m_node;
+				bool m_processOwnMessages;
 				bool m_receiveAnswerMessages;
 				bool m_isInProgrammingMode;
 				bool m_isInitialized;
@@ -206,7 +207,8 @@ namespace Onixarts
 				void Update();
 				void Send(HapcanMessage & message, bool sendImmediately = false);
 
-				void ReceiveAnswerMessages(bool value) { m_receiveAnswerMessages = value; }
+				void ReceiveAnswerMessages(bool value = true) { m_receiveAnswerMessages = value; }
+				void ProcessOwnMessages(bool value = true) { m_processOwnMessages = value; }
 				bool GetConfigByte(byte configBank, byte byteNumber, byte& value);
 				bool SetConfigByte(byte configBank, byte byteNumber, byte value);
 				
