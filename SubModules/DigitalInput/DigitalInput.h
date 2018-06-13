@@ -63,7 +63,7 @@ namespace Onixarts
 							m_device.Send(statusMessage);
 						}
 
-						bool Execute(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message)
+						bool Execute(InstructionStruct& exec, Hapcan::HapcanMessage& message)
 						{
 							return false;
 						}

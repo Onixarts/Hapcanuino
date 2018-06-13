@@ -1,6 +1,6 @@
 // Hapcanuino helps to implement Hapcan (Home Automation Project) compatible devices on Arduino board.
 // 
-// Code explanation: https://github.com/Onixarts/Hapcanuino/wiki/HelloWorld
+// Code explanation: https://github.com/Onixarts/Hapcanuino/wiki/Direct-Control
 // Github: https://github.com/Onixarts/Hapcanuino
 // Author's site: http://onixarts.pl
 // Contact: software@onixarts.pl
@@ -19,13 +19,11 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
+
 #include "Arduino.h"
 #include "HapcanDevice.h"
 
-// Hapcanuino uses namespaces 
 using namespace Onixarts::HomeAutomationCore;
-
-// HapcanDevice class declaration
 Hapcan::HapcanDevice hapcanDevice;
 
 // Configure Your Hapcan device here
@@ -46,22 +44,48 @@ const byte Hapcan::Config::Firmware::ApplicationVersion = 0;	// application (har
 const byte Hapcan::Config::Firmware::FirmwareVersion = 1;		// firmware version
 const int  Hapcan::Config::Firmware::FirmwareRevision = 0;		// firmware revision
 																// Configuration end
+// Callback function to be called, when received message match box criteria or direct control message is received
+void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& message);
+
+
+// Callback function to be called, when control message is received (or received message satisfy box criteria)
+void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& message);
 
 void setup()
 {
 	Serial.begin(115200);
 	Serial.println("Hapcanuino device starting...");
 
-	// initializing Hapcanuino device
 	hapcanDevice.Begin();
+	
+	//set callback function to be called, when received message match box criteria or direct control message is received
+	hapcanDevice.SetExecuteInstructionDelegate(ExecuteInstruction);
+
+	// demo example, set pin7 as output
+	pinMode(PIN7, OUTPUT);
 }
 
 void loop()
 {
-	// call Update in loop, to process incomming CAN messages. Should be called as frequent as possible
 	hapcanDevice.Update();
+}
 
-	// TODO: place your loop code here. This code should not block loop function for a long time. 
-	// Do not use delay() here. 
-	// Note: all onixarts libraries are written in the same manner, the loop must only updates the objects and don't block the loop function with delay.
+// Callback function is called when HAPCAN message satisfy box criteria or direct control message is received
+// @exec - instruction to execute
+// @message - hapcan message received from CAN
+void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& message)
+{
+	switch (exec.Instruction())
+	{
+	case 1: // turn LED ON
+		digitalWrite(PIN7, HIGH);
+		break;
+	case 2: // turn LED OFF
+		digitalWrite(PIN7, LOW);
+		break;
+	case 3: // toggle LED
+		digitalWrite(PIN7, digitalRead(PIN7) == LOW);
+		break;
+		//case 4: // put other instructions here; break;
+	}
 }

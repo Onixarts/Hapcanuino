@@ -65,14 +65,14 @@ namespace Onixarts
 							m_device.Send(statusMessage);
 						}
 
-						bool Execute(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message)
+						bool Execute(InstructionStruct& exec, Hapcan::HapcanMessage& message)
 						{
-							if (param1!= 0xFF && !(param1 & (1 << (m_channel - 1))))
+							if (exec.Parameter1() != 0xFF && !(exec.Parameter1() & (1 << (m_channel - 1))))
 								return false;
 
-							unsigned long delay = Hapcan::Tools::Byte2Time(param2);
+							unsigned long delay = Hapcan::Tools::Byte2Time(exec.Parameter2());
 
-							switch (instruction)
+							switch (exec.Instruction())
 							{
 							case Instruction::TurnOff: Off(delay); return true;
 							case Instruction::TurnOn: On(delay); return true;
@@ -81,7 +81,7 @@ namespace Onixarts
 							{  
 								// blink, channel, X, X, delay, repeat count, duration
 								unsigned long duration = Hapcan::Tools::Byte2Time(message.m_data[6]);
-								Blink(duration == 0 ? 1000 : duration, param3, delay);
+								Blink(duration == 0 ? 1000 : duration, exec.Parameter3(), delay);
 								return true;
 							}
 							}

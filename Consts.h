@@ -84,9 +84,6 @@ namespace Onixarts
 
 				const byte ExtendedConfig = 2;
 				const byte ExtendedConfigCapacity = 48;
-
-				const byte Storage = 3;
-				const byte StorageAddressCapacity = 287;
 			}
 
 			namespace Programming
@@ -104,7 +101,7 @@ namespace Onixarts
 			// Do not modiffy CoreConfig, unless You know what are You doing ;). Go find another config.
 			namespace CoreConfig
 			{
-				const byte BoxCount = 32; // stick to 2^n
+				const byte BoxCount = 28; // stick to 2^n
 
 				namespace EEPROM
 				{
@@ -113,7 +110,6 @@ namespace Onixarts
 					const byte BoxEnableAddress = 0x40;
 					const byte ExtendedConfigAddress = 0x50;
 					const byte BoxConfigAddress = 0x80;
-					const int StorageAddress = 0x02e0;
 				}
 			}
 			
@@ -122,6 +118,8 @@ namespace Onixarts
 				const byte Ignore = 0x00;
 				const byte Equal = 0x01;
 				const byte Different = 0x02;
+				const byte LessOrEqual = 0x03;
+				const byte GraterOrEqual = 0x04;
 			}
 			
 			namespace Message

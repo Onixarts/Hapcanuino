@@ -340,7 +340,6 @@ void HapcanDevice::ProcessProgrammingMessage(HapcanMessage* message)
 // Process normal message type. Checks box enable bits and test HAPCAN message conditions. 
 bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 {
-	//unsigned long aaa1 = millis();
 	unsigned int boxConfigAddress = CoreConfig::EEPROM::BoxConfigAddress;
 	for (byte i = 0; i < CoreConfig::BoxCount/8; i++)
 	{
@@ -350,7 +349,6 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 			if (boxEnableFlags & 0x01)
 			{
 				BoxConfigStruct boxConfig;
-				//Serial.println(CoreConfig::EEPROM::BoxConfigAddress + sizeof(BoxConfigStruct)*boxBit + i * 8 * sizeof(BoxConfigStruct), HEX);
 				EEPROM.get(CoreConfig::EEPROM::BoxConfigAddress + sizeof(BoxConfigStruct)*boxBit + i*8*sizeof(BoxConfigStruct), boxConfig);
 				if (boxConfig.Accept(message))
 				{
@@ -359,20 +357,17 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 					OA_LOG_LINE(F(" instr: "));
 					OA_LOG(boxConfig.data[15]);
 
-					OnExecuteInstruction(boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18], *message);
+					//InstructionStruct* exec = &boxConfig;
+					OnExecuteInstruction(*(&boxConfig), *message);
 
 					if (m_executeInstructionDelegate != NULL)
-						m_executeInstructionDelegate(boxConfig.data[15], boxConfig.data[16], boxConfig.data[17], boxConfig.data[18], *message);
+						m_executeInstructionDelegate(*(&boxConfig), *message);
 				}
 			}
 			boxEnableFlags = boxEnableFlags >> 1;
 		}
 	}
 	return false;
-	//unsigned long aaa2 = millis();
-	//Serial.println(aaa1);
-	//Serial.print("-");
-	//Serial.println(aaa2);
 }
 
 // Process system massage type
@@ -509,12 +504,6 @@ bool HapcanDevice::GetConfigByte(byte configBank, byte byteNumber, byte& value)
 			return false;
 		value = EEPROM[Hapcan::CoreConfig::EEPROM::ExtendedConfigAddress + byteNumber];
 		break;
-	
-	case Hapcan::ConfigBank::Storage:
-		if (byteNumber > Hapcan::ConfigBank::StorageAddressCapacity)
-			return false;
-		value = EEPROM[Hapcan::CoreConfig::EEPROM::StorageAddress + byteNumber];
-		break;
 	default:
 		return false;
 	}
@@ -536,12 +525,6 @@ bool HapcanDevice::SetConfigByte(byte configBank, byte byteNumber, byte value)
 		if (byteNumber > Hapcan::ConfigBank::ExtendedConfigCapacity)
 			return false;
 		EEPROM.update(Hapcan::CoreConfig::EEPROM::ExtendedConfigAddress + byteNumber, value);
-		break;
-
-	case Hapcan::ConfigBank::Storage:
-		if (byteNumber > Hapcan::ConfigBank::StorageAddressCapacity)
-			return false;
-		EEPROM.update(Hapcan::CoreConfig::EEPROM::StorageAddress + byteNumber, value);
 		break;
 	default:
 		return false;
@@ -747,10 +730,13 @@ void HapcanDevice::ControlAction(HapcanMessage* message)
 {
 	OA_LOG(F("> Direct Control"));
 	
-	OnExecuteInstruction(message->m_data[0], message->m_data[1], message->m_data[4], message->m_data[5], *message);
+	InstructionStruct exec;
+	exec.InitFromBytes(message->m_data[0], message->m_data[1], message->m_data[4], message->m_data[5], message->m_data[6], message->m_data[7]);
+	
+	OnExecuteInstruction(exec, *message);
 
 	if (m_executeInstructionDelegate != NULL)
-		m_executeInstructionDelegate(message->m_data[0], message->m_data[1], message->m_data[4], message->m_data[5], *message);
+		m_executeInstructionDelegate(exec, *message);
 }
 
 // Send device (chip) ID 

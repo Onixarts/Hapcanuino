@@ -74,25 +74,36 @@ namespace Onixarts
 					void PrintToSerial();
 			};
 
-			typedef void(*ExecuteInstructionDelegate)(byte instruction, byte param1, byte param2, byte param3, HapcanMessage& message);
-			typedef void(*StatusRequestDelegate)(byte requestType, bool isAnswer);
 
-			// this structure has to have 19 Bytes. Don't change it. It is stored in EEPROM.
-			struct BoxConfigStruct
+			struct InstructionStruct
 			{
-				byte data[19];
-				//unsigned int frameType;
-				//byte senderNode;
-				//byte senderGroup;
-				//byte data[8];
-				//byte operator_1_4;
-				//byte operator_5_8;
-				//byte operator_9_12;
-				//byte instruction;
-				//byte param1;
-				//byte param2;
-				//byte param3;
+				// this structure has to have 32 Bytes. Don't change it. It is stored in EEPROM. See /docs/Hapcanuino_1-50-0-0-memory.xlsx for details
+				byte data[32];
 
+				byte Instruction() { return data[24]; }
+				byte Parameter1() { return data[25]; }
+				byte Parameter2() { return data[26]; }
+				byte Parameter3() { return data[27]; }
+				byte Parameter4() { return data[28]; }
+				byte Parameter5() { return data[29]; }
+				byte Parameter6() { return data[30]; }
+				byte Parameter7() { return data[31]; }
+
+				void TranslateInstruction(byte shift) { data[24] -= shift; }
+				void InitFromBytes(byte instruction, byte param1, byte param2, byte param3, byte param4, byte param5)
+				{
+					data[24] = instruction;
+					data[25] = param1;
+					data[26] = param2;
+					data[27] = param3;
+					data[28] = param4;
+					data[29] = param5;
+					data[30] = 0xFF;
+					data[31] = 0xFF;
+				}
+			};
+			struct BoxConfigStruct : InstructionStruct
+			{
 				bool Accept(HapcanMessage* message)
 				{
 					if (!Compare(0, (highByte(message->GetFrameType())) << 4))
@@ -114,30 +125,27 @@ namespace Onixarts
 
 				bool Compare(byte byteNumber, byte messageByte)
 				{
-					byte compareOperator = data[12 + (byteNumber / 4)];
-					compareOperator = compareOperator >> ((byteNumber % 4) * 2);
-					switch (compareOperator & 0x03)
+					byte compareOperator = data[12 + byteNumber];
+					switch (compareOperator)
 					{
 					case BoxOperator::Ignore:
-					{
 						return true;
-					}
 					case BoxOperator::Equal:
-					{
-						if (data[byteNumber] == messageByte)
-							return true;
-					}
-						break;
+						return (data[byteNumber] == messageByte);
 					case BoxOperator::Different:
-					{
-						if (data[byteNumber] != messageByte)
-							return true;
-					}
-						break;
+						return (data[byteNumber] != messageByte);
+					case BoxOperator::LessOrEqual:
+						return (data[byteNumber] >= messageByte);
+					case BoxOperator::GraterOrEqual:
+						return (data[byteNumber] <= messageByte);
 					}
 					return false;
 				}
+
 			};
+
+			typedef void(*ExecuteInstructionDelegate)(InstructionStruct& exec, HapcanMessage& message);
+			typedef void(*StatusRequestDelegate)(byte requestType, bool isAnswer);
 
 			class HapcanDevice
 			{
@@ -196,7 +204,7 @@ namespace Onixarts
 				virtual void OnInit() {};
 				virtual void OnReadEEPROMConfig() {};
 				virtual void OnUpdate() {};
-				virtual void OnExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message) {};
+				virtual void OnExecuteInstruction(InstructionStruct& exec, Hapcan::HapcanMessage& message) {};
 				virtual void OnStatusRequest(byte requestType, bool isAnswer) {};
 
 			public:
@@ -226,15 +234,16 @@ namespace Onixarts
 			{
 			protected:
 				byte m_instructionShift;
-				virtual bool Execute(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message) = 0;
+				virtual bool Execute(InstructionStruct& exec, Hapcan::HapcanMessage& message) = 0;
 			public:
 				SubModuleBase(byte instructionShift) : m_instructionShift(instructionShift) {};
 				virtual void Init() = 0;
 				virtual void Update() = 0;
 				virtual void SendStatus(bool isAnswer) = 0;
-				bool ExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message)
+				bool ExecuteInstruction(InstructionStruct& exec, Hapcan::HapcanMessage& message)
 				{
-					return Execute(instruction - m_instructionShift, param1, param2, param3, message);
+					exec.TranslateInstruction(m_instructionShift);
+					return Execute(exec, message);
 				}
 			};
 
@@ -268,11 +277,11 @@ namespace Onixarts
 					}
 				}
 				
-				virtual void OnExecuteInstruction(byte instruction, byte param1, byte param2, byte param3, Hapcan::HapcanMessage& message)
+				virtual void OnExecuteInstruction(InstructionStruct& exec, Hapcan::HapcanMessage& message)
 				{
 					for (byte i = 0; i < SubmodulesCount; i++)
 					{
-						m_subModules[i]->ExecuteInstruction(instruction, param1, param2, param3, message);
+						m_subModules[i]->ExecuteInstruction(exec, message);
 					}
 				}
 
