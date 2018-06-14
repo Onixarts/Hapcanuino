@@ -1,6 +1,6 @@
 // Hapcanuino helps to implement Hapcan (Home Automation Project) compatible devices on Arduino board.
 // 
-// Code explanation: https://github.com/Onixarts/Hapcanuino/wiki/Direct-Control
+// Code explanation: https://github.com/Onixarts/Hapcanuino/wiki/Status-request
 // Github: https://github.com/Onixarts/Hapcanuino
 // Author's site: http://onixarts.pl
 // Contact: software@onixarts.pl
@@ -48,6 +48,16 @@ const int  Hapcan::Config::Firmware::FirmwareRevision = 0;		// firmware revision
 // Callback function to be called, when control message is received (or received message satisfy box criteria)
 void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& message);
 
+// Callback function for status request handling
+void SendStatus(byte requestType, bool isAnswer);
+
+// Information type to be send by SendStatus function. Do not use value of 0 - it is reserved for StatusRequestType::SendAll
+namespace StatusRequestType
+{
+	const byte LED7Status = 0x07;
+	// const byte OtherDeviceStatus = 0x10;
+}
+
 void setup()
 {
 	Serial.begin(115200);
@@ -58,6 +68,9 @@ void setup()
 	//set callback function to be called, when received message match box criteria or direct control message is received
 	hapcanDevice.SetExecuteInstructionDelegate(ExecuteInstruction);
 
+	// set callback function to be called when Hapcanuino receives status request message or module change its state
+	hapcanDevice.SetStatusRequestDelegate(SendStatus);
+
 	// demo example, set pin7 as output
 	pinMode(PIN7, OUTPUT);
 }
@@ -67,11 +80,13 @@ void loop()
 	hapcanDevice.Update();
 }
 
-// Callback function is called when HAPCAN message satisfy box criteria or direct control message is received
-// @exec - instruction to execute
+// Callback function is called when HAPCAN message match box criteria or direct control message is received
+// @exec - instruction defined in box to be called when message is match criteria
 // @message - hapcan message received from CAN
 void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& message)
 {
+	int initialState = digitalRead(PIN7);
+
 	switch (exec.Instruction())
 	{
 	case 1: // turn LED ON
@@ -85,4 +100,40 @@ void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& 
 		break;
 		//case 4: // put other instructions here; break;
 	}
+
+	// check, if LED changes its state and send message to Hapcan bus
+	if (initialState != digitalRead(PIN7))
+	{
+		// send status frame after change of LED7 to notify other Hapcan modules. 
+		// Notice second (isAnswer) parameter is set to false, because we call it directly after status change, so it is not an answer for status request
+		SendStatus(StatusRequestType::LED7Status, false);
+	}
+}
+
+//Callback function is called automaticaly after status request message received.
+// You can also call this function when status is changed to notify other Hapcan modules. See ExecuteInstruction function.
+// @requestType - You can use this parameter to pass information about which device function status should be send. 
+// You can use Hapcan::Config::Message::System::StatusRequestType::SendAll value (0) to send all values, and other custom device dependent value.
+// @ isAnswer - when this function is called by Hapcanuino on status request message the true value is passed to this function. If You call this function on
+// device state change, pass false, because other Hapcan devices may not process this message as it is marked as an answer for request.
+void SendStatus(byte requestType, bool isAnswer)
+{
+	// check if we should send informations about all the functions in module
+	bool sendAll = requestType == Hapcan::Message::System::StatusRequestType::SendAll;
+
+	// if we need send all info or just LED7Info status
+	if (sendAll || requestType == StatusRequestType::LED7Status)
+	{
+		// Prepare a standard Hapcan's Relay Message (0x302)
+		// Use isAnswer variable here, because it will be set to true when it is a response for StatusRequest message (0x109)
+		Hapcan::HapcanMessage statusMessage(Hapcan::Message::Normal::RelayMessage, isAnswer);
+		statusMessage.m_data[2] = 7;	// set up byte 3 as channel 7
+		statusMessage.m_data[3] = digitalRead(PIN7) == LOW ? 0x00 : 0xFF; // set byte 4 (status, 0x00 = LED OFF, 0xFF = LED ON
+		hapcanDevice.Send(statusMessage);
+	}
+
+	//if (sendAll || requestType == StatusRequestType::OtherDeviceStatus)
+	//{
+		//... prepare and send OtherDeviceStatus message here
+	//}
 }
