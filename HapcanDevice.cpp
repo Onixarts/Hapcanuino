@@ -355,7 +355,7 @@ bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 					OA_LOG_LINE(F("> Accepted box: "));
 					OA_LOG_LINE((boxBit + i * 8)+1);
 					OA_LOG_LINE(F(" instr: "));
-					OA_LOG(boxConfig.data[15]);
+					OA_LOG(boxConfig.Instruction());
 
 					//InstructionStruct* exec = &boxConfig;
 					OnExecuteInstruction(*(&boxConfig), *message);
