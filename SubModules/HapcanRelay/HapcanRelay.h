@@ -69,7 +69,7 @@ namespace Onixarts
 						{
 							if (exec.Parameter1() != 0xFF && !(exec.Parameter1() & (1 << (m_channel - 1))))
 								return false;
-
+							
 							unsigned long delay = Hapcan::Tools::Byte2Time(exec.Parameter2());
 
 							switch (exec.Instruction())

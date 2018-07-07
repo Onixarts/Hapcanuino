@@ -89,16 +89,16 @@ void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& 
 
 	switch (exec.Instruction())
 	{
+	case 0: // turn LED OFF
+		digitalWrite(PIN7, LOW);
+		break;
 	case 1: // turn LED ON
 		digitalWrite(PIN7, HIGH);
 		break;
-	case 2: // turn LED OFF
-		digitalWrite(PIN7, LOW);
-		break;
-	case 3: // toggle LED
+	case 2: // toggle LED
 		digitalWrite(PIN7, digitalRead(PIN7) == LOW);
 		break;
-		//case 4: // put other instructions here; break;
+		//case 3: // put other instructions here; break;
 	}
 
 	// check, if LED changes its state and send message to Hapcan bus
@@ -127,7 +127,7 @@ void SendStatus(byte requestType, bool isAnswer)
 		// Prepare a standard Hapcan's Relay Message (0x302)
 		// Use isAnswer variable here, because it will be set to true when it is a response for StatusRequest message (0x109)
 		Hapcan::HapcanMessage statusMessage(Hapcan::Message::Normal::RelayMessage, isAnswer);
-		statusMessage.m_data[2] = 7;	// set up byte 3 as channel 7
+		statusMessage.m_data[2] = 1;	// set up byte 3 as channel 1 for example
 		statusMessage.m_data[3] = digitalRead(PIN7) == LOW ? 0x00 : 0xFF; // set byte 4 (status, 0x00 = LED OFF, 0xFF = LED ON
 		hapcanDevice.Send(statusMessage);
 	}

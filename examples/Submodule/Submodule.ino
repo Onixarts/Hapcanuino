@@ -1,6 +1,6 @@
 // Hapcanuino helps to implement Hapcan (Home Automation Project) compatible devices on Arduino board.
 // 
-// Code explanation: https://github.com/Onixarts/Hapcanuino/wiki/Direct-Control
+// Code explanation: https://github.com/Onixarts/Hapcanuino/wiki/Submodule
 // Github: https://github.com/Onixarts/Hapcanuino
 // Author's site: http://onixarts.pl
 // Contact: software@onixarts.pl
@@ -22,6 +22,9 @@
 
 #include "Arduino.h"
 #include "HapcanDevice.h"
+#include <OnixartsIO.h>
+#include <OnixartsTaskManager.h>
+#include "SubModules\HapcanRelay\HapcanRelay.h"
 
 using namespace Onixarts::HomeAutomationCore;
 Hapcan::HapcanDevice hapcanDevice;
@@ -44,9 +47,25 @@ const byte Hapcan::Config::Firmware::ApplicationVersion = 0;	// application (har
 const byte Hapcan::Config::Firmware::FirmwareVersion = 1;		// firmware version
 const int  Hapcan::Config::Firmware::FirmwareRevision = 0;		// firmware revision
 																// Configuration end
+																// Information type to be send by SendStatus function. Do not use value of 0 - it is reserved for StatusRequestType::SendAll
 
-// Callback function to be called, when control message is received (or received message satisfy box criteria)
-void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& message);
+class MyLED7Device : public Hapcan::HapcanDeviceSubModuleHost<1>
+{
+	// submodules declaration
+	Hapcan::SubModule::HapcanRelay::Module LED7Output;
+
+public:
+	MyLED7Device()
+		: LED7Output(*this, 1, PIN7, 0x00)
+	{
+		// add SubModule to the host
+		m_subModules[0] = &LED7Output;
+	}
+};
+
+// and now, instantiate custom MyLED7Device class
+MyLED7Device hapcanDevice;
+
 
 void setup()
 {
@@ -54,35 +73,9 @@ void setup()
 	Serial.println("Hapcanuino device starting...");
 
 	hapcanDevice.Begin();
-	
-	//set callback function to be called, when received message match box criteria or direct control message is received
-	hapcanDevice.SetExecuteInstructionDelegate(ExecuteInstruction);
-
-	// demo example, set pin7 as output
-	pinMode(PIN7, OUTPUT);
 }
 
 void loop()
 {
 	hapcanDevice.Update();
-}
-
-// Callback function is called when HAPCAN message satisfy box criteria or direct control message is received
-// @exec - instruction to execute
-// @message - hapcan message received from CAN
-void ExecuteInstruction(Hapcan::InstructionStruct& exec, Hapcan::HapcanMessage& message)
-{
-	switch (exec.Instruction())
-	{
-	case 0: // turn LED OFF
-		digitalWrite(PIN7, LOW);
-		break;
-	case 1: // turn LED ON
-		digitalWrite(PIN7, HIGH);
-		break;
-	case 2: // toggle LED
-		digitalWrite(PIN7, digitalRead(PIN7) == LOW);
-		break;
-		//case 3: // put other instructions here; break;
-	}
 }
