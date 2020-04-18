@@ -4,7 +4,7 @@
 #define _HAPCANRELAY_h
 
 #include "arduino.h"
-#include "../Onixarts_Hapcanuino/HapcanDevice.h"
+#include "HapcanDevice.h"
 #include <OnixartsIO.h>
 
 using namespace Onixarts::HomeAutomationCore;
@@ -36,10 +36,10 @@ namespace Onixarts
 						Hapcan::HapcanDevice& m_device;
 					public:
 						Module(Hapcan::HapcanDevice& device, byte channel, byte outputPin, byte instructionShift)
-							: Hapcan::SubModuleBase(instructionShift)
-							, IO::DigitalOutput(outputPin)
+							: IO::DigitalOutput(outputPin)
+							, Hapcan::SubModuleBase(instructionShift)
 							, m_channel(channel)
-							, m_device(device) 
+							, m_device(device)
 						{}
 
 						void OnStateChanged()
