@@ -82,18 +82,18 @@ HapcanDevice::HapcanDevice()
 	, m_TxBufferReadIndex(0)
 	, m_rxBufferOverflowCount(0)
 	, m_txBufferOverflowCount(0)
-	, m_node(Hapcan::Config::Node::SerialNumber2)
 	, m_group(Hapcan::Config::Node::SerialNumber3)
+	, m_node(Hapcan::Config::Node::SerialNumber2)
 	, m_processOwnMessages(false)
 	, m_receiveAnswerMessages(false)
 	, m_isInProgrammingMode(false)
 	, m_isInitialized(false)
 	, m_memoryAddress(0)
 	, m_memoryCommand(Programming::Command::Undefined)
-	, m_executeInstructionDelegate(NULL)
-	, m_statusRequestDelegate(NULL)
 	, m_uptime(0UL)
 	, m_lastMillis(0UL)
+	, m_executeInstructionDelegate(NULL)
+	, m_statusRequestDelegate(NULL)
 {
 	pHapcanDevice = this;
 }
@@ -340,7 +340,7 @@ void HapcanDevice::ProcessProgrammingMessage(HapcanMessage* message)
 // Process normal message type. Checks box enable bits and test HAPCAN message conditions. 
 bool HapcanDevice::ProcessNormalMessage(HapcanMessage* message)
 {
-	unsigned int boxConfigAddress = CoreConfig::EEPROM::BoxConfigAddress;
+	//unsigned int boxConfigAddress = CoreConfig::EEPROM::BoxConfigAddress;
 	for (byte i = 0; i < CoreConfig::BoxCount/8; i++)
 	{
 		byte boxEnableFlags = EEPROM[CoreConfig::EEPROM::BoxEnableAddress + i];
